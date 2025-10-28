@@ -1,0 +1,261 @@
+/* assets/style.css (Modern Dashboard Teması) */
+body {
+    font-family: 'Inter', sans-serif; /* Fontu koruyoruz, modern bir seçim */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #F4F7FC !important; /* Ana arka plan - Çok açık, neredeyse beyaz bir mavi/gri */
+    color: #495057 !important; /* Ana metin rengi - Koyu gri (Bootstrap varsayılanına yakın) */
+}
+
+/* Yeni Tema Renkleri ve Stilleri */
+.bg-main-content { /* Ana içerik alanının arka planı */
+    background-color: #FFFFFF !important; 
+}
+
+/* Ana Tema Renkleri (Resimden ilhamla) */
+.text-theme-primary { 
+    color: #4A69FF !important; /* Canlı bir mavi (resimdeki ana vurgu rengine benzer) */
+}
+.bg-theme-primary {
+    background-color: #4A69FF !important;
+    color: #FFFFFF !important;
+}
+.border-theme-primary {
+    border-color: #4A69FF !important;
+}
+
+.text-theme-secondary {
+    color: #6c757d !important; /* Bootstrap'in ikincil gri rengi */
+}
+.text-theme-light {
+    color: #ABB5C4 !important; /* Açık gri metinler için */
+}
+.text-theme-dark {
+    color: #343f52 !important; /* Daha koyu bir gri/mavi metin */
+}
+
+
+/* Header (Üst Başlık) */
+.header-main-bs {
+    background-color: #FFFFFF !important; /* Header arka planı beyaz */
+    color: #343f52 !important; /* Header metni koyu gri/mavi */
+    padding: 1rem 1.5rem !important;
+    border-bottom: 1px solid #E5E9F2; /* İnce bir alt çizgi */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+.header-main-bs h1 {
+    margin-bottom: 0;
+    font-weight: 700; 
+}
+.header-main-bs h1 a {
+    color: #4A69FF !important; /* Ana tema rengi */
+    text-decoration: none;
+}
+
+/* Butonlar */
+.btn-theme-primary {
+    background-color: #4A69FF !important;
+    color: #FFFFFF !important;
+    border-color: #4A69FF !important;
+    font-weight: 500; 
+    padding: 0.55rem 1.25rem; /* Biraz daha dolgun butonlar */
+    border-radius: 0.375rem; 
+    transition: all 0.2s ease-in-out;
+}
+.btn-theme-primary:hover, .btn-theme-primary:focus {
+    background-color: #3A58E0 !important; /* Hover'da biraz koyu mavi */
+    color: #FFFFFF !important;
+    border-color: #354FB8 !important;
+    box-shadow: 0 0 0 0.2rem rgba(74, 105, 255, 0.3);
+}
+.btn-theme-primary.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+}
+.btn-outline-theme-primary {
+    color: #4A69FF !important;
+    border-color: #4A69FF !important;
+}
+.btn-outline-theme-primary:hover {
+    background-color: #4A69FF !important;
+    color: #FFFFFF !important;
+}
+
+
+/* Input Alanları */
+.input-theme { 
+    border: 1px solid #DDE2EF !important; 
+    background-color: #FFFFFF !important; 
+    color: #495057 !important; 
+    border-radius: 0.375rem;
+}
+.input-theme:focus {
+    border-color: #8A9EFF !important; /* Odaklandığında tema renginin açığı */
+    box-shadow: 0 0 0 0.25rem rgba(74, 105, 255, 0.25) !important;
+}
+.input-theme::placeholder {
+    color: #A0A9C0 !important; 
+}
+
+/* Alert Renkleri */
+.alert-theme-success { color: #0f5132; background-color: #d1e7dd; border-color: #badbcc; }
+.alert-theme-danger { color: #842029; background-color: #f8d7da; border-color: #f5c2c7; }
+.alert-theme-info { color: #052c65; background-color: #cfe2ff; border-color: #b6d4fe; } /* Bootstrap info'ya yakın */
+.alert-theme-warning { color: #664d03; background-color: #fff3cd; border-color: #ffecb5; }
+
+/* Sınav Sayfası */
+.question-item-bs {
+    background-color: #FFFFFF !important; 
+    border-left: 4px solid #4A69FF !important; 
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.06);
+    border-radius: 0.375rem;
+}
+.question-item-bs .card-title { 
+    color: #343f52 !important; /* Soru başlığı için koyu gri/mavi */
+    font-weight: 600;
+}
+.timer-bs {
+    color: #4A69FF !important; 
+    background-color: #FFFFFF !important;
+    border: 1px solid #E5E9F2 !important; 
+    border-radius: 0.375rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.timer-bs.bg-danger-subtle { 
+    background-color: #f8d7da !important;
+    color: #58151C !important;
+    border-color: #f1aeb5 !important;
+}
+
+/* Sonuçlar Sayfası ve Dashboard Kartları */
+.results-table-bs th, .results-table-bs td,
+.konu-karnesi-tablosu-bs th, .konu-karnesi-tablosu-bs td {
+    border: 1px solid #E5E9F2; 
+    color: #495057; 
+}
+.results-table-bs th,
+.konu-karnesi-tablosu-bs th {
+    background-color: #F8F9FC; /* Açık gri/mavi */
+    color: #343f52; 
+    font-weight: 600;
+}
+
+.exam-info-bs { /* Dashboard'daki deneme kartları */
+    background-color: #FFFFFF !important; 
+    border: 1px solid #E5E9F2 !important;
+    color: #495057; 
+    border-radius: 0.5rem; /* Daha yuvarlak köşeler */
+    box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.05);
+}
+.exam-info-bs h3, .exam-info-bs h4, .exam-info-bs .card-title { 
+    color: #4A69FF !important; 
+    font-weight: 600;
+}
+.exam-info-bs .text-muted { 
+    color: #6c757d !important; 
+}
+
+.footer-main-bs {
+    background-color: #FFFFFF; 
+    border-top: 1px solid #E5E9F2;
+    color: #6c757d !important; 
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.form-check-input-theme:checked { 
+    background-color: #4A69FF;
+    border-color: #4A69FF;
+}
+.form-check-input-theme:focus {
+    box-shadow: 0 0 0 0.25rem rgba(74, 105, 255, 0.25);
+}
+
+/* Genel Kart Stili */
+.card-theme { /* Anasayfadaki deneme kartları için */
+    background-color: #FFFFFF !important;
+    border: 1px solid #E5E9F2 !important;
+    box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.05);
+    border-radius: 0.5rem;
+}
+.card-theme .card-title {
+    color: #4A69FF !important;
+    font-weight: 600;
+}
+.card-theme .card-text {
+    color: #495057;
+}
+
+/* Öne Çıkan Deneme Kartı (Dashboard) */
+.card.border-theme-primary { /* Bu sınıfı dashboard'daki öne çıkan deneme kartına vereceğiz */
+    border-color: #4A69FF !important; 
+}
+.card.border-theme-primary .card-header { 
+    background-color: #4A69FF !important; 
+    color: #FFFFFF !important;
+    border-bottom: 1px solid #3A58E0 !important;
+}
+
+/* Duyurular bölümü */
+.announcements-section-theme {
+    margin-bottom: 30px;
+    padding: 0; 
+    background-color: #FFFFFF; 
+    border: 1px solid #E5E9F2; 
+    border-radius: 0.5rem; 
+    box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.05);
+}
+.announcements-section-theme .card-header { 
+    background-color: #F8F9FC !important; 
+    color: #343f52 !important; 
+    border-bottom: 1px solid #E5E9F2 !important;
+    font-weight: 600;
+}
+.announcements-section-theme .list-group-item {
+    background-color: transparent; 
+    border-bottom: 1px solid #EFF2F7; 
+    color: #495057; 
+}
+.announcements-section-theme .list-group-item:last-child {
+    border-bottom: none;
+}
+.announcements-section-theme h6 { 
+    color: #4A69FF; /* Duyuru başlığı */
+    font-weight: 600;
+}
+.announcements-section-theme small.text-muted { 
+     color: #6c757d !important;
+}
+
+/* Tebrik Ekranı */
+#tebrikEkrani {
+    background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%) !important; /* Yumuşak mavi gradient */
+    color: #343f52 !important; 
+}
+#tebrikEkrani #tebrikBaslik { 
+    font-family: 'Pacifico', cursive; 
+    font-size: 4.5rem; 
+    color: #4A69FF !important; 
+    text-shadow: 2px 2px 3px rgba(0,0,0,0.1);
+}
+#tebrikEkrani #tebrikDenemeAdi { 
+    font-size: 1.8rem; 
+    color: #3A58E0; /* Biraz daha koyu mavi */
+}
+#tebrikEkrani .sira-item {
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #343f52;
+}
+#tebrikEkrani .top3-item .sira-no.birinci { color: #FFD700; } 
+#tebrikEkrani .top3-item .sira-no.ikinci { color: #C0C0C0; } 
+#tebrikEkrani .top3-item .sira-no.ucuncu { color: #CD7F32; } 
+#tebrikEkrani .btn-theme-primary { /* Kapatma butonu */
+    background-color: #4A69FF !important;
+    color: #FFFFFF !important;
+}
+
+/* İkonlar için genel stil (Bootstrap Icons kullanılıyorsa) */
+.bi {
+    vertical-align: -0.125em; /* İkonları metinle daha iyi hizalar */
+}

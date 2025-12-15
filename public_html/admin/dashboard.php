@@ -17,9 +17,13 @@ try {
     $total_users = $stmt_total_users->fetchColumn();
     $stmt_total_denemeler = $pdo->query("SELECT COUNT(*) FROM denemeler WHERE aktif_mi = 1");
     $total_aktif_denemeler = $stmt_total_denemeler->fetchColumn();
-    $stmt_total_codes = $pdo->query("SELECT COUNT(*) FROM deneme_erisim_kodlari");
+    
+    // DÜZELTME: Tablo adı 'deneme_erisim_kodlari' yerine 'erisim_kodlari' olarak güncellendi
+    $stmt_total_codes = $pdo->query("SELECT COUNT(*) FROM erisim_kodlari");
     $total_codes = $stmt_total_codes->fetchColumn();
-    $stmt_used_codes = $pdo->query("SELECT COUNT(*) FROM deneme_erisim_kodlari WHERE kullanici_id IS NOT NULL");
+    
+    // DÜZELTME: Tablo adı 'deneme_erisim_kodlari' yerine 'erisim_kodlari' olarak güncellendi
+    $stmt_used_codes = $pdo->query("SELECT COUNT(*) FROM erisim_kodlari WHERE kullanici_id IS NOT NULL");
     $used_codes = $stmt_used_codes->fetchColumn();
 } catch (PDOException $e) {
     error_log("Admin Dashboard İstatistik Hatası: " . $e->getMessage());
@@ -63,13 +67,13 @@ try {
 <h3 class="admin-page-title mt-4" style="border:none; font-size: 1.75rem;">Yönetim Menüsü</h3>
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
     
-    <!-- Deneme ve Kod Yönetimi -->
+    <!-- Deneme Yönetimi -->
     <div class="col">
         <div class="card card-theme shadow-sm h-100">
             <div class="card-body d-flex flex-column text-center">
                 <div class="mb-3"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-journals text-theme-primary" viewBox="0 0 16 16"><path d="M5 0h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2 2 2 0 0 1-2 1H3a2 2 0 0 1-2-2h1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1H1a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1H3a2 2 0 0 1-2-2z"/><path d="M1 6v-.5a.5.5 0 0 1 1 0V6h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1h.5zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1h.5zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1h.5z"/></svg></div>
-                <h5 class="card-title">Denemeler ve Kodlar</h5>
-                <p class="card-text text-theme-secondary small flex-grow-1">Denemeleri, cevap anahtarlarını ve deneme erişim kodlarını yönetin.</p>
+                <h5 class="card-title">Denemeler</h5>
+                <p class="card-text text-theme-secondary small flex-grow-1">Yeni deneme ekleyin, mevcutları düzenleyin ve cevap anahtarlarını yönetin.</p>
                 <div class="mt-auto">
                     <a href="manage_denemeler.php" class="btn btn-theme-primary w-100">Denemeleri Yönet</a>
                     <a href="manage_kodlar.php" class="btn btn-outline-secondary btn-sm mt-2 w-100">Erişim Kodlarını Yönet</a>
@@ -109,7 +113,7 @@ try {
     <div class="col">
         <div class="card card-theme shadow-sm h-100">
             <div class="card-body d-flex flex-column text-center">
-                 <div class="mb-3"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-megaphone-fill text-theme-primary" viewBox="0 0 16 16"><path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25 25 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56V3.224z"/><path d="M7.646 1.115A.5.5 0 0 1 8 1h0a.5.5 0 0 1 .354.115l1.73 1.73A.5.5 0 0 1 10 3H6a.5.5 0 0 1-.354-.854zM5 2.5a0.5 0.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm0 3a0.5 0.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm0 3a0.5 0.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/></svg></div>
+                 <div class="mb-3"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" fill="currentColor" class="bi bi-megaphone-fill text-theme-primary" viewBox="0 0 16 16"><path d="M13 2.5a1.5 1.5 0 0 1 3 0v11a1.5 1.5 0 0 1-3 0zm-1 .724c-2.067.95-4.539 1.481-7 1.656v6.237a25 25 0 0 1 1.088.085c2.053.204 4.038.668 5.912 1.56V3.224z"/><path d="M7.646 1.115A.5.5 0 0 1 8 1h0a.5.5 0 0 1 .354.115l1.73 1.73A.5.5 0 0 1 10 3H6a.5.5 0 0 1-.354-.854zM5 2.5a0.5 0.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm0 3a0.5 0.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/></svg></div>
                 <h5 class="card-title">Duyurular</h5>
                 <p class="card-text text-theme-secondary small flex-grow-1">Kullanıcı panosunda görünecek duyuruları ekleyin veya düzenleyin.</p>
                 <a href="manage_duyurular.php" class="btn btn-theme-primary mt-auto">Duyuruları Yönet</a>
@@ -142,7 +146,6 @@ try {
     <?php endif; ?>
 
 </div>
-<!-- Detaylı Navigasyon Menüsü Kaldırıldı -->
 
 <?php
 include_once __DIR__ . '/../templates/admin_footer.php';

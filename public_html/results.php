@@ -1,5 +1,5 @@
 <?php
-// results.php (Modern Dashboard Teması ile - Buton Düzeltmeleri)
+// results.php (Modern Dashboard Teması ile - Çözüm ve Karne Butonları)
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db_connect.php';
 require_once __DIR__ . '/includes/functions.php';
@@ -138,7 +138,7 @@ if (!empty($konu_analizi)) {
                     <?php endif; ?>
                     
                     <?php
-                    // Karne İndirme Butonu (Her zaman gösterilecek, çünkü karne sınav tamamlandıysa oluşturulabilir)
+                    // Karne İndirme Butonu
                     $karne_indir_url = BASE_URL . '/indir_karne.php?katilim_id=' . $katilim_id;
                     ?>
                     <a href="<?php echo $karne_indir_url; ?>" class="btn btn-success" target="_blank"> 

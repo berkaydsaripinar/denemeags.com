@@ -51,7 +51,7 @@ include_once __DIR__ . '/templates/header.php'; // Bootstrap'li header (yeni sty
                                     <?php if (!empty($deneme['resim_url'])): ?>
                                         <img src="<?php echo escape_html($deneme['resim_url']); ?>" class="card-img-top" alt="<?php echo escape_html($deneme['deneme_adi']); ?>" style="max-height: 220px; object-fit: cover;">
                                     <?php else: ?>
-                                        {/* Yeni temaya uygun placeholder */}
+                                        
                                         <img src="https://placehold.co/600x220/E0E7FF/4A69FF?text=Deneme+Görseli" class="card-img-top" alt="Deneme Görseli Yok" style="max-height: 220px; object-fit: cover;">
                                     <?php endif; ?>
                                     <div class="card-body d-flex flex-column">

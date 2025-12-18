@@ -1,7 +1,7 @@
 <?php
 // download_secure_pdf.php
-// PDF dosyalarını (Soru veya Çözüm) kullanıcının bilgileriyle damgalayarak indirir.
-// Hata düzeltmeleri: Deprecated filter kaldırıldı, veritabanı sütun adı deneme_id yapıldı.
+// PDF dosyalarını (Soru veya Çözüm) kullanıcının bilgileriyle GÖRÜNÜR (Üst/Alt) ve GÖRÜNMEZ (Filigran) olarak damgalayarak indirir.
+// GÜNCELLEME: 2. Sayfa olarak kişiye özel Yasal Uyarı sayfası ekler.
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db_connect.php';
@@ -13,8 +13,6 @@ use Mpdf\Mpdf;
 requireLogin();
 
 $deneme_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-
-// Deprecated FILTER_SANITIZE_STRING yerine doğrudan alıyoruz
 $type = $_GET['type'] ?? ''; 
 
 if (!$deneme_id || !in_array($type, ['question', 'solution'])) {
@@ -22,12 +20,15 @@ if (!$deneme_id || !in_array($type, ['question', 'solution'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$user_ad_soyad = $_SESSION['user_ad_soyad'];
 $ip_adresi = $_SERVER['REMOTE_ADDR'];
 
 try {
+    // Kullanıcı Ad Soyadını veritabanından çek (daha güvenilir)
+    $stmt_user_name = $pdo->prepare("SELECT ad_soyad FROM kullanicilar WHERE id = ?");
+    $stmt_user_name->execute([$user_id]);
+    $user_ad_soyad = $stmt_user_name->fetchColumn() ?? 'Kullanici';
+
     // 1. Kullanıcının erişimini ve ürünün türünü (tur) bul
-    // DÜZELTME: ke.urun_id yerine ke.deneme_id kullanıldı.
     $stmt_access = $pdo->prepare("
         SELECT 
             ke.id, 
@@ -48,18 +49,20 @@ try {
         die('Bu dökümana erişim yetkiniz yok.');
     }
 
-    $file_path = '';
+    $target_filename = '';
     $file_name_prefix = '';
+    $specific_folder = '';
 
     if ($type === 'question') {
-        if (empty($data['soru_kitapcik_dosyasi'])) die('Soru kitapçığı dosyası bulunamadı.');
-        $file_path = __DIR__ . '/uploads/questions/' . $data['soru_kitapcik_dosyasi'];
+        if (empty($data['soru_kitapcik_dosyasi'])) die('Soru kitapçığı dosyası tanımlanmamış.');
+        $target_filename = $data['soru_kitapcik_dosyasi'];
         $file_name_prefix = 'SoruKitapcigi';
+        $specific_folder = 'questions';
 
     } elseif ($type === 'solution') {
-        if (empty($data['cozum_linki'])) die('Çözüm kitapçığı dosyası bulunamadı.');
+        if (empty($data['cozum_linki'])) die('Çözüm kitapçığı dosyası tanımlanmamış.');
 
-        // EĞER TÜR 'DENEME' İSE SINAV KONTROLÜ YAP
+        // Deneme türü ise sınav kontrolü
         if ($data['tur'] === 'deneme') {
             $stmt_check_exam = $pdo->prepare("SELECT id FROM kullanici_katilimlari WHERE kullanici_id = ? AND deneme_id = ? AND sinav_tamamlama_tarihi IS NOT NULL");
             $stmt_check_exam->execute([$user_id, $deneme_id]);
@@ -67,17 +70,30 @@ try {
                  die('Deneme sınavı çözüm dökümanını indirmek için önce sınavı tamamlamanız gerekmektedir.');
             }
         }
-        // Eğer 'soru_bankasi' veya 'diger' ise kontrolsüz izin ver
-
-        $file_path = __DIR__ . '/uploads/solutions/' . $data['cozum_linki'];
+        $target_filename = $data['cozum_linki'];
         $file_name_prefix = 'CozumKitapcigi';
+        $specific_folder = 'solutions';
     }
 
-    if (!file_exists($file_path)) {
-        die('Dosya sunucuda bulunamadı. Lütfen yönetici ile iletişime geçin.');
+    // --- DOSYA YOLU KONTROLÜ ---
+    $possible_paths = [
+        __DIR__ . "/uploads/$specific_folder/" . $target_filename, 
+        __DIR__ . "/uploads/products/" . $target_filename          
+    ];
+
+    $file_path = null;
+    foreach ($possible_paths as $path) {
+        if (file_exists($path)) {
+            $file_path = $path;
+            break;
+        }
     }
 
-    // 4. mPDF ile Damgalama İşlemi
+    if (!$file_path) {
+        die('Dosya sunucuda bulunamadı. Lütfen yönetici ile iletişime geçin. (Aranan dosya: ' . htmlspecialchars($target_filename) . ')');
+    }
+
+    // 4. mPDF ile Filigranlama ve Metin Ekleme İşlemi
     $mpdf = new Mpdf([
         'mode' => 'utf-8',
         'format' => 'A4',
@@ -87,30 +103,87 @@ try {
 
     $pageCount = $mpdf->setSourceFile($file_path);
     $erisim_kodu = $data['erisim_kodu'] ?? 'KOD_BULUNAMADI';
+    
+    // --- GÜVENLİK FİLİGRANI (Çapraz, Silik) ---
+    $watermarkText = escape_html($user_ad_soyad) . " | KOD: " . escape_html($erisim_kodu) . " | IP: " . $ip_adresi;
+    
+    $mpdf->SetWatermarkText($watermarkText);
+    $mpdf->showWatermarkText = true;
+    $mpdf->watermark_font = 'dejavusans'; 
+    $mpdf->watermarkTextAlpha = 0.08; 
+    $mpdf->watermarkAngle = 45; 
+
+    // --- ÜST VE ALT BİLGİ METİNLERİ ---
+    $headerFooterText = sprintf(
+        "KİŞİYE ÖZEL KOPYA: %s | ERIŞİM KODU: %s | %s - BU BELGE PAYLAŞILAMAZ!", 
+        escape_html($user_ad_soyad), 
+        escape_html($erisim_kodu), 
+        date('d.m.Y H:i')
+    );
 
     for ($i = 1; $i <= $pageCount; $i++) {
+        // 1. Orijinal Sayfayı İçe Aktar ve Ekle
         $tplId = $mpdf->importPage($i);
         $size = $mpdf->getTemplateSize($tplId);
+        
         $mpdf->AddPage($size['orientation'], '', 0, 0, 0, 0, 0, 0, 0, 0, '', '', '', '', '', $size['width'], $size['height']);
         $mpdf->useTemplate($tplId);
+        
+        // Sayfa Üzerine Bilgileri Yaz
+        $mpdf->SetFont('dejavusans', 'B', 7); 
+        $mpdf->SetTextColor(0, 0, 0); 
+        $mpdf->SetXY(5, 5); 
+        $mpdf->Cell(0, 5, $headerFooterText, 0, 0, 'C'); 
 
-        $headerText = sprintf("Ad Soyad: %s | IP: %s | Tarih: %s", $user_ad_soyad, $ip_adresi, date('d.m.Y H:i'));
-        $mpdf->SetFont('dejavusans', 'B', 8); 
-        $mpdf->SetTextColor(255, 0, 0); 
-        $mpdf->SetXY(10, 5); 
-        $mpdf->Cell(0, 0, $headerText, 0, 0, 'C');
+        $mpdf->SetFont('dejavusans', 'B', 7); 
+        $mpdf->SetTextColor(0, 0, 0); 
+        $mpdf->SetXY(5, $size['height'] - 7); 
+        $mpdf->Cell(0, 5, $headerFooterText, 0, 0, 'C'); 
 
-        $footerText = sprintf("Erişim Kodu: %s | Ürün ID: %d | Bu belge kişiye özeldir, paylaşılamaz.", $erisim_kodu, $deneme_id);
-        $mpdf->SetFont('dejavusans', 'I', 8); 
-        $mpdf->SetTextColor(100, 100, 100); 
-        $mpdf->SetXY(10, $size['height'] - 8); 
-        $mpdf->Cell(0, 0, $footerText, 0, 0, 'C');
+        // 2. Eğer bu 1. Sayfa (Kapak) ise, hemen arkasına Güvenlik Uyarısı Sayfası Ekle
+        if ($i == 1) {
+            $mpdf->AddPage('P'); // Dikey standart sayfa
+            
+            $guvenlik_html = '
+                <div style="border: 5px solid #dc3545; padding: 40px; margin-top: 50px; text-align: center; font-family: dejavusans;">
+                    <h1 style="color: #dc3545; font-size: 32pt; margin-bottom: 20px;">⚠️ YASAL UYARI</h1>
+                    <p style="font-size: 14pt; margin-bottom: 30px;">Bu dijital belge, aşağıda kimlik bilgileri belirtilen kullanıcıya özel olarak lisanslanmıştır:</p>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ddd; margin: 0 auto; width: 80%;">
+                        <p style="font-size: 12pt; margin: 5px 0;"><strong>Adı Soyadı:</strong> ' . escape_html($user_ad_soyad) . '</p>
+                        <p style="font-size: 12pt; margin: 5px 0;"><strong>Erişim Kodu:</strong> ' . escape_html($erisim_kodu) . '</p>
+                        <p style="font-size: 12pt; margin: 5px 0;"><strong>İndirme Tarihi:</strong> ' . date('d.m.Y H:i') . '</p>
+                        <p style="font-size: 12pt; margin: 5px 0;"><strong>IP Adresi:</strong> ' . $ip_adresi . '</p>
+                    </div>
+
+                    <p style="font-size: 12pt; line-height: 1.6; margin-top: 40px; text-align: justify;">
+                        5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca; bu belgenin tamamının veya bir kısmının, hak sahibinin izni olmaksızın 
+                        kopyalanması, çoğaltılması, dijital platformlarda (WhatsApp, Telegram, Sosyal Medya vb.) paylaşılması veya ticari amaçla kullanılması 
+                        kesinlikle <strong>YASAKTIR ve SUÇTUR</strong>.
+                    </p>
+                    
+                    <p style="font-size: 12pt; color: #dc3545; font-weight: bold; margin-top: 20px;">
+                        Belge üzerinde, izinsiz paylaşım yapan kişiyi tespit etmeye yarayan görünür ve gizli dijital takip kodları bulunmaktadır. 
+                        İhlal tespiti durumunda yasal işlem başlatılacak ve maddi/manevi tazminat talep edilecektir.
+                    </p>
+                </div>
+            ';
+            
+            $mpdf->WriteHTML($guvenlik_html);
+            
+            // Güvenlik sayfasına da alt bilgi ekleyelim (bütünlük için)
+            $mpdf->SetFont('dejavusans', 'B', 7); 
+            $mpdf->SetTextColor(100, 100, 100); 
+            $mpdf->SetXY(5, 290); // Sayfa altı
+            $mpdf->Cell(0, 5, $headerFooterText, 0, 0, 'C'); 
+        }
     }
 
     $outputName = $file_name_prefix . '_' . $deneme_id . '_' . date('Ymd') . '.pdf';
+    ob_end_clean(); 
     $mpdf->Output($outputName, \Mpdf\Output\Destination::DOWNLOAD);
 
-} catch (Exception $e) {
+} catch (\Exception $e) {
     die('Bir hata oluştu: ' . $e->getMessage());
 }
 ?>

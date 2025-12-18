@@ -288,5 +288,48 @@ function recalculateAndApplyBellCurve($deneme_id, $pdo) {
         error_log("Exception in recalculateAndApplyBellCurve for deneme_id $deneme_id: " . $e->getMessage());
         return false;
     }
+    
 }
-?>
+// --- SMTP MAİL FONKSİYONU (GMAIL İLE) ---
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\SMTP;
+
+require_once __DIR__ . '/PHPMailer/Exception.php';
+require_once __DIR__ . '/PHPMailer/PHPMailer.php';
+require_once __DIR__ . '/PHPMailer/SMTP.php';
+
+function send_smtp_email($to_email, $subject, $message_body) {
+    $mail = new PHPMailer(true);
+
+    try {
+        // 1. Gmail Sunucu Ayarları
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';             // Google Sunucusu
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'denemeags@gmail.com';        // SENİN GMAIL ADRESİN (Bunu değiştir)
+        $mail->Password   = 'jwvc jneb yubv ihzj';        // AZ ÖNCE ALDIĞIN 16 HANELİ UYGULAMA ŞİFRESİ (Boşluksuz yazabilirsin)
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // Gmail için TLS şart
+        $mail->Port       = 587;                          // Gmail TLS Portu
+
+        // 2. Alıcı ve Gönderen
+        // DİKKAT: setFrom adresi, yukarıdaki Gmail adresiyle AYNI olmalıdır.
+        $mail->setFrom('denemeags@gmail.com', 'DenemeAGS Bilgilendirme'); 
+        $mail->addAddress($to_email);
+
+        // 3. İçerik
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = $subject;
+        $mail->Body    = nl2br($message_body);
+        $mail->AltBody = strip_tags($message_body);
+
+        $mail->send();
+        return true;
+
+    } catch (Exception $e) {
+        // Hata olursa loglayalım
+        error_log("Gmail SMTP Hatası: {$mail->ErrorInfo}");
+        return false;
+    }
+}

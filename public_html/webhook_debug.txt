@@ -1,0 +1,33 @@
+[2025-12-17 14:53:31] --------------------------------------------------
+[2025-12-17 14:53:31] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2025-12-17 14:53:31] Sipariş ID: 789365814 | Email: berkaysaripinar@gmail.com | Tutar: 10 | Test Modu: 0
+[2025-12-17 14:53:31] Mevcut kullanıcı bulundu. ID: 231
+[2025-12-17 14:53:31] Shopier'den Gelen Ürün ID: 36698918
+[2025-12-17 14:53:31] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Deneme-2 (ID: 2)
+[2025-12-17 14:53:31] EXCEPTION HATASI: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'u120099295_deneme.satis_loglari' doesn't exist
+[2025-12-17 14:57:27] --------------------------------------------------
+[2025-12-17 14:57:27] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2025-12-17 14:57:27] Sipariş ID: 735152580 | Email: berkoodak@gmail.com | Tutar: 10 | Test Modu: 0
+[2025-12-17 14:57:27] Yeni kullanıcı oluşturuldu. ID: 236
+[2025-12-17 14:57:27] Shopier'den Gelen Ürün ID: 36698918
+[2025-12-17 14:57:27] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Deneme-2 (ID: 2)
+[2025-12-17 14:57:27] Veritabanı kayıtları tamamlandı. Kod: B5CE292F
+[2025-12-17 14:57:27] Mail gönderimi başlatılıyor... Alıcı: berkoodak@gmail.com
+[2025-12-17 14:57:28] SONUÇ: Mail başarıyla gönderildi (True döndü).
+[2025-12-17 14:57:28] İşlem başarıyla tamamlandı ve 'success' dönüldü.
+[2025-12-17 15:04:41] --------------------------------------------------
+[2025-12-17 15:04:41] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2025-12-17 15:04:41] Sipariş ID: 457437149 | Email: berkoodak@gmail.com | Tutar: 10 | Test Modu: 0
+[2025-12-17 15:04:41] Mevcut kullanıcı bulundu. ID: 236
+[2025-12-17 15:04:41] Shopier'den Gelen Ürün ID: 36698918
+[2025-12-17 15:04:41] EXCEPTION HATASI: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'yazar_id' in 'SELECT'
+[2025-12-17 15:09:11] --------------------------------------------------
+[2025-12-17 15:09:11] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2025-12-17 15:09:11] Sipariş ID: 207344146 | Email: berkoodak@gmail.com | Tutar: 10 | Test Modu: 0
+[2025-12-17 15:09:11] Mevcut kullanıcı bulundu. ID: 236
+[2025-12-17 15:09:11] Shopier'den Gelen Ürün ID: 36698918
+[2025-12-17 15:09:11] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Deneme-2 (ID: 2)
+[2025-12-17 15:09:11] Veritabanı kayıtları tamamlandı. Kod: FC093A68
+[2025-12-17 15:09:11] Mail gönderimi başlatılıyor... Alıcı: berkoodak@gmail.com
+[2025-12-17 15:09:12] SONUÇ: HTML Mail başarıyla gönderildi.
+[2025-12-17 15:09:12] İşlem başarıyla tamamlandı.

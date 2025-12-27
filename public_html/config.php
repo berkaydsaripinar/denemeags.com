@@ -8,7 +8,7 @@ define('DB_PASS', 'Bds242662!');
 define('DB_CHARSET', 'utf8mb4');
 
 // Site Ayarları
-define('SITE_NAME', 'ÖABT Online Deneme Sınavı');
+define('SITE_NAME', 'DenemeAGS-Hibrit Yayın');
 define('BASE_URL', 'https://denemeags.com'); 
                                                  
 // Saat Dilimi

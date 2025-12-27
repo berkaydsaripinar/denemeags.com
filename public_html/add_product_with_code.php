@@ -1,87 +1,96 @@
 <?php
-// add_product_with_code.php
+/**
+ * add_product_with_code.php
+ * Öğrencinin girdiği erişim kodunu doğrular ve kullanıcının kütüphanesine (kullanici_erisimleri) ekler.
+ */
+
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db_connect.php';
 require_once __DIR__ . '/includes/functions.php';
 
-requireLogin();
+// 1. Giriş ve Metot Kontrolü
+if (!isLoggedIn()) {
+    set_flash_message('error', 'Lütfen önce giriş yapınız.');
+    redirect('login.php');
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     redirect('dashboard.php');
 }
 
+// 2. Güvenlik (CSRF) Kontrolü
 if (!isset($_POST['csrf_token']) || !verify_csrf_token($_POST['csrf_token'])) {
-    set_flash_message('error', 'Geçersiz istek.');
+    set_flash_message('error', 'Güvenlik doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin.');
     redirect('dashboard.php');
 }
 
-$urun_kodu = strtoupper(trim($_POST['urun_kodu'] ?? ''));
 $user_id = $_SESSION['user_id'];
+$urun_kodu = strtoupper(trim($_POST['urun_kodu'] ?? ''));
 
 if (empty($urun_kodu)) {
-    set_flash_message('error', 'Lütfen bir kod giriniz.');
+    set_flash_message('error', 'Lütfen geçerli bir kod giriniz.');
     redirect('dashboard.php');
 }
 
 try {
-    // 1. Kodu Kontrol Et
-    // cok_kullanimlik bilgisini de çek
+    // 3. Kodu Veritabanında Ara (erisim_kodlari tablosu)
     $stmt_code = $pdo->prepare("
-        SELECT ek.id, ek.deneme_id, ek.kullanici_id, ek.cok_kullanimlik, d.deneme_adi 
-        FROM erisim_kodlari ek
-        JOIN denemeler d ON ek.deneme_id = d.id
-        WHERE ek.kod = ? AND ek.kod_turu = 'urun'
+        SELECT id, deneme_id, urun_id, kullanici_id, cok_kullanimlik 
+        FROM erisim_kodlari 
+        WHERE kod = ? AND kod_turu = 'urun'
     ");
     $stmt_code->execute([$urun_kodu]);
     $code_data = $stmt_code->fetch(PDO::FETCH_ASSOC);
 
     if (!$code_data) {
-        set_flash_message('error', 'Geçersiz erişim kodu.');
+        set_flash_message('error', 'Girdiğiniz kod sistemde bulunamadı veya hatalı.');
         redirect('dashboard.php');
     }
 
-    // Tek kullanımlıksa ve kullanılmışsa hata ver
-    if ($code_data['cok_kullanimlik'] == 0 && $code_data['kullanici_id'] !== null) {
-        set_flash_message('error', 'Bu erişim kodu daha önce kullanılmış.');
+    // Geriye dönük uyumluluk için urun_id veya deneme_id'yi seç
+    $target_id = $code_data['urun_id'] ?: $code_data['deneme_id'];
+
+    if (!$target_id) {
+        set_flash_message('error', 'Bu kodla ilişkilendirilmiş bir ürün bulunamadı.');
         redirect('dashboard.php');
     }
 
-    $deneme_id = $code_data['deneme_id'];
-
-    // 2. Kullanıcının bu ürüne zaten sahip olup olmadığını kontrol et
-    $stmt_check_access = $pdo->prepare("SELECT id FROM kullanici_erisimleri WHERE kullanici_id = ? AND deneme_id = ?");
-    $stmt_check_access->execute([$user_id, $deneme_id]);
-    if ($stmt_check_access->fetch()) {
-        set_flash_message('info', 'Bu ürüne zaten sahipsiniz.');
+    // 4. Tek Kullanımlık Kod ise Daha Önce Kullanılmış mı Kontrol Et
+    if ($code_data['cok_kullanimlik'] == 0 && !is_null($code_data['kullanici_id'])) {
+        set_flash_message('error', 'Bu kod daha önce başka bir kullanıcı tarafından aktifleştirilmiş.');
         redirect('dashboard.php');
     }
 
-    // 3. Erişimi Tanımla
+    // 5. Kullanıcının Kütüphanesinde Zaten Var mı?
+    $stmt_check = $pdo->prepare("SELECT id FROM kullanici_erisimleri WHERE kullanici_id = ? AND deneme_id = ?");
+    $stmt_check->execute([$user_id, $target_id]);
+    
+    if ($stmt_check->fetch()) {
+        set_flash_message('info', 'Bu yayın kütüphanenizde zaten mevcut.');
+        redirect('dashboard.php');
+    }
+
+    // 6. İşlemi Başlat (Transaction)
     $pdo->beginTransaction();
 
-    // Erişimi ekle
-    // Eğer kod çok kullanımlıksa erisim_kodu_id'yi kaydetmek mantıklı olabilir (hangi kodla geldiğini bilmek için)
-    // veya NULL geçilebilir. Kaydetmek daha iyidir.
-    $stmt_add_access = $pdo->prepare("INSERT INTO kullanici_erisimleri (kullanici_id, deneme_id, erisim_kodu_id, erisim_tarihi) VALUES (?, ?, ?, NOW())");
-    $stmt_add_access->execute([$user_id, $deneme_id, $code_data['id']]);
+    // Kütüphaneye (kullanici_erisimleri) ekle
+    $stmt_add = $pdo->prepare("INSERT INTO kullanici_erisimleri (kullanici_id, deneme_id, erisim_kodu_id, erisim_tarihi) VALUES (?, ?, ?, NOW())");
+    $stmt_add->execute([$user_id, $target_id, $code_data['id']]);
 
-    // SADECE TEK KULLANIMLIKSA kodu "kullanıldı" olarak işaretle
+    // Eğer kod TEK KULLANIMLIK ise, kodu bu kullanıcıya kilitle
     if ($code_data['cok_kullanimlik'] == 0) {
-        $stmt_update_code = $pdo->prepare("UPDATE erisim_kodlari SET kullanici_id = ?, kullanilma_tarihi = NOW() WHERE id = ?");
-        $stmt_update_code->execute([$user_id, $code_data['id']]);
+        $stmt_update = $pdo->prepare("UPDATE erisim_kodlari SET kullanici_id = ?, kullanilma_tarihi = NOW() WHERE id = ?");
+        $stmt_update->execute([$user_id, $code_data['id']]);
     }
 
     $pdo->commit();
-
-    set_flash_message('success', '"' . htmlspecialchars($code_data['deneme_adi']) . '" kütüphanenize başarıyla eklendi!');
+    
+    set_flash_message('success', 'Harika! İçerik kütüphanenize başarıyla eklendi.');
     redirect('dashboard.php');
 
 } catch (Exception $e) {
     if ($pdo->inTransaction()) $pdo->rollBack();
-    error_log("Ürün ekleme hatası: " . $e->getMessage());
-    // Hata mesajını daha detaylı görmek isterseniz (sadece geliştirme aşamasında):
-    // set_flash_message('error', 'Hata: ' . $e->getMessage());
-    set_flash_message('error', 'İşlem sırasında bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+    error_log("Kod Aktivasyon Hatası: " . $e->getMessage());
+    set_flash_message('error', 'Bir sorun oluştu, lütfen daha sonra tekrar deneyiniz.');
     redirect('dashboard.php');
 }
-?>

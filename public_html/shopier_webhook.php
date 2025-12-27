@@ -20,8 +20,8 @@ debug_log("--------------------------------------------------");
 debug_log("YENİ İSTEK GELDİ. İşlem Başlıyor...");
 
 // --- AYARLAR ---
-$username = '3579768d3cd1d74b30b7582b55ddb90c'; // OSB Kullanıcı Adı
-$key      = '0d50fb442141bb411b45e5912a823348'; // OSB Şifresi
+$username = '8df56142b98eb788e37c07c228d4eb30'; // OSB Kullanıcı Adı
+$key      = '0b6dfabbdc2889a007162cfa4f4bf0ac'; // OSB Şifresi
 
 // 1. Veri Kontrolü
 if (!isset($_POST['res'])) {
@@ -66,12 +66,16 @@ try {
         $user_id = $user_row['id'];
         debug_log("Mevcut kullanıcı bulundu. ID: $user_id");
     } else {
+        // Shopier'den gelen ad ve soyadı al
+        $buyer_full_name = trim(($data['buyername'] ?? 'Değerli') . ' ' . ($data['buyersurname'] ?? 'Müşterimiz'));
+        
         $sifre_ham = bin2hex(random_bytes(4));
         $yeni_sifre = $sifre_ham; // Mailde kullanmak için sakla
         $stmt_new = $pdo->prepare("INSERT INTO kullanicilar (ad_soyad, email, sifre_hash, aktif_mi) VALUES (?, ?, ?, 1)");
-        $stmt_new->execute(['Musteri', $email, password_hash($sifre_ham, PASSWORD_DEFAULT)]);
+        // 'Musteri' yerine gerçek ismi gönderiyoruz
+        $stmt_new->execute([$buyer_full_name, $email, password_hash($sifre_ham, PASSWORD_DEFAULT)]);
         $user_id = $pdo->lastInsertId();
-        debug_log("Yeni kullanıcı oluşturuldu. ID: $user_id");
+        debug_log("Yeni kullanıcı oluşturuldu ($buyer_full_name). ID: $user_id");
     }
 
     // 4. Ürün Eşleştirme
@@ -110,7 +114,7 @@ try {
         $site_url = BASE_URL;
         $login_url = BASE_URL . '/index.php'; // Giriş sayfası ana sayfa ise
 
-        // Müşteri Adı
+        // Müşteri Adı (Mail için de aynısını kullanıyoruz)
         $ad_soyad_mail = ($data['buyername'] ?? 'Değerli') . ' ' . ($data['buyersurname'] ?? 'Müşterimiz');
 
         $message = '

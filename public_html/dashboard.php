@@ -1,223 +1,396 @@
 <?php
-// dashboard.php (Modern Dashboard - Denemelerde Soru Kitapçığı İndirme Özelliği ile)
+// dashboard.php - Öğrenci Kontrol Paneli (Gelişmiş UI ve Yeni Özellikler)
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db_connect.php';
 require_once __DIR__ . '/includes/functions.php';
 
-requireLogin(); 
+// Giriş kontrolü
+if (!isLoggedIn()) {
+    redirect('login.php');
+}
 
-$page_title = "Kütüphanem";
 $user_id = $_SESSION['user_id'];
-$user_ad_soyad = $_SESSION['user_ad_soyad'];
-$csrf_token = generate_csrf_token(); 
+$page_title = "Öğrenci Paneli";
+$csrf_token = generate_csrf_token(); // CSRF Güvenliği için
 
-include_once __DIR__ . '/templates/header.php'; 
+// Değişkenleri varsayılanlarla başlat
+$kutuphane = [];
+$history = [];
+$duyurular = [];
+$total_products = 0;
+$total_exams_taken = 0;
+$avg_net = 0;
 
-// Kullanıcının sahip olduğu ürünleri çek
-$my_products = [];
 try {
-    $stmt_products = $pdo->prepare("
-        SELECT 
-            d.id, d.deneme_adi, d.tur, d.kisa_aciklama, d.resim_url,
-            d.soru_kitapcik_dosyasi, d.cozum_linki,
-            ke.erisim_tarihi
+    // 1. Kütüphanedeki Ürünleri Çek
+    $stmt_erisim = $pdo->prepare("
+        SELECT d.*, y.ad_soyad as yazar_adi, ke.erisim_tarihi 
         FROM kullanici_erisimleri ke
         JOIN denemeler d ON ke.deneme_id = d.id
-        WHERE ke.kullanici_id = :user_id AND d.aktif_mi = 1
+        LEFT JOIN yazarlar y ON d.yazar_id = y.id
+        WHERE ke.kullanici_id = ? AND d.aktif_mi = 1
         ORDER BY ke.erisim_tarihi DESC
     ");
-    $stmt_products->execute([':user_id' => $user_id]);
-    $all_products = $stmt_products->fetchAll(PDO::FETCH_ASSOC);
+    $stmt_erisim->execute([$user_id]);
+    $kutuphane = $stmt_erisim->fetchAll();
 
-    // Ürünleri türlerine göre ayır
-    $denemeler = [];
-    $kaynaklar = [];
+    // 2. Sınav Geçmişini Çek
+    $stmt_history = $pdo->prepare("
+        SELECT kk.*, d.deneme_adi, d.soru_sayisi, d.sonuc_aciklama_tarihi
+        FROM kullanici_katilimlari kk
+        JOIN denemeler d ON kk.deneme_id = d.id
+        WHERE kk.kullanici_id = ? AND kk.sinav_tamamlama_tarihi IS NOT NULL
+        ORDER BY kk.sinav_tamamlama_tarihi DESC
+    ");
+    $stmt_history->execute([$user_id]);
+    $history = $stmt_history->fetchAll();
 
-    foreach ($all_products as $prod) {
-        if ($prod['tur'] === 'deneme') {
-            $denemeler[] = $prod;
-        } else {
-            $kaynaklar[] = $prod; // soru_bankasi veya diger
-        }
-    }
+    // 3. Aktif Duyuruları Çek
+    $stmt_duyuru = $pdo->query("SELECT * FROM duyurular WHERE aktif_mi = 1 ORDER BY olusturulma_tarihi DESC LIMIT 3");
+    $duyurular = $stmt_duyuru->fetchAll();
 
-    // Sınav durumlarını kontrol et
-    $exam_statuses = [];
-    $stmt_exams = $pdo->prepare("SELECT deneme_id, sinav_tamamlama_tarihi, id as katilim_id FROM kullanici_katilimlari WHERE kullanici_id = :user_id");
-    $stmt_exams->execute([':user_id' => $user_id]);
-    while ($row = $stmt_exams->fetch(PDO::FETCH_ASSOC)) {
-        $exam_statuses[$row['deneme_id']] = $row;
+    // 4. İstatistikleri Hesapla
+    $total_products = count($kutuphane);
+    $total_exams_taken = count($history);
+    
+    if ($total_exams_taken > 0) {
+        $sum_net = array_sum(array_column($history, 'net_sayisi'));
+        $avg_net = $sum_net / $total_exams_taken;
     }
 
 } catch (PDOException $e) {
-    error_log("Dashboard ürün listeleme hatası: " . $e->getMessage());
-    set_flash_message('error', "Kütüphaneniz yüklenirken bir sorun oluştu.");
+    error_log("Dashboard veri hatası: " . $e->getMessage());
 }
+
+include_once __DIR__ . '/templates/header.php';
 ?>
 
-<div class="mb-5 pt-3 text-center"> 
-    <h2 class="display-5 text-theme-primary fw-bold">Kütüphanem</h2>
-    <p class="lead text-theme-secondary">Hoş geldiniz, <strong class="text-theme-dark"><?php echo escape_html($user_ad_soyad); ?></strong>!</p>
+<style>
+    :root {
+        --dash-primary: #1F3C88;
+        --dash-accent: #FF6F61;
+        --dash-bg: #f4f7fa;
+        --card-border: #eaedf3;
+    }
+    body { background-color: var(--dash-bg); }
+
+    /* Karşılama Kartı */
+    .welcome-card {
+        background: linear-gradient(135deg, var(--dash-primary) 0%, #3a58e0 100%);
+        border-radius: 20px;
+        padding: 35px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(31, 60, 136, 0.2);
+    }
+    .welcome-card::after {
+        content: '\f5da';
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        position: absolute;
+        right: -20px;
+        bottom: -30px;
+        font-size: 10rem;
+        opacity: 0.1;
+        transform: rotate(-15deg);
+    }
+
+    /* İstatistik Hapları */
+    .stat-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 20px;
+        border: 1px solid var(--card-border);
+        transition: 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+    .stat-icon-box {
+        width: 40px; height: 40px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 12px;
+    }
+
+    /* Duyuru Alanı */
+    .announcement-bar {
+        background: #fff;
+        border-radius: 15px;
+        border-left: 5px solid var(--dash-accent);
+        padding: 15px 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    /* Yayın Kartları */
+    .dash-product-card {
+        border: 1px solid var(--card-border);
+        border-radius: 18px;
+        background: #fff;
+        transition: 0.3s;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .dash-product-card:hover { border-color: var(--dash-primary); box-shadow: 0 12px 30px rgba(31, 60, 136, 0.08); }
+    .card-img-container { height: 160px; overflow: hidden; border-radius: 17px 17px 0 0; }
+    .card-img-container img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Tab Stilize */
+    .nav-pills-custom .nav-link {
+        color: var(--dash-primary);
+        font-weight: 700;
+        padding: 10px 25px;
+        border-radius: 50px;
+        border: 1px solid #dee2e6;
+        margin: 0 5px;
+        background: #fff;
+    }
+    .nav-pills-custom .nav-link.active {
+        background-color: var(--dash-primary) !important;
+        color: #fff !important;
+        border-color: var(--dash-primary);
+    }
+
+    /* Badge Renkleri */
+    .bg-soft-primary { background: rgba(31, 60, 136, 0.1); color: var(--dash-primary); }
+    .bg-soft-success { background: rgba(25, 135, 84, 0.1); color: #198754; }
+    .bg-soft-warning { background: rgba(255, 111, 97, 0.1); color: var(--dash-accent); }
+
+    @media (max-width: 768px) {
+        .welcome-card { padding: 25px; text-align: center; }
+        .nav-pills-custom { display: flex; width: 100%; overflow-x: auto; padding-bottom: 10px; }
+        .nav-pills-custom .nav-item { flex: 1; min-width: 140px; }
+    }
+</style>
+
+<div class="container py-4 py-md-5">
+
+    <!-- 1. Karşılama ve Duyurular -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="welcome-card h-100">
+                <h2 class="fw-bold mb-2">Selam, <?php echo escape_html(explode(' ', $_SESSION['user_ad_soyad'] ?? 'Öğrenci')[0]); ?>! 👋</h2>
+                <p class="opacity-75 mb-4">Sınav hazırlık yolculuğunda bugün yeni bir başarıya daha imza atmaya ne dersin?</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addCodeModal">
+                        <i class="fas fa-key me-2"></i>Yeni Kod Tanımla
+                    </button>
+                    <a href="index.php" class="btn btn-light rounded-pill px-4 fw-bold text-primary">
+                        <i class="fas fa-shopping-cart me-2"></i>Mağaza
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="d-flex flex-column gap-3 h-100 justify-content-center">
+                <h6 class="fw-bold text-muted text-uppercase mb-0 small ls-1"><i class="fas fa-bullhorn me-2"></i>Son Duyurular</h6>
+                <?php if(empty($duyurular)): ?>
+                    <div class="announcement-bar py-4 text-center">
+                        <small class="text-muted">Şu an aktif bir duyuru yok.</small>
+                    </div>
+                <?php else: ?>
+                    <?php foreach($duyurular as $d): ?>
+                        <div class="announcement-bar">
+                            <h6 class="mb-1 fw-bold small text-dark"><?php echo escape_html($d['baslik']); ?></h6>
+                            <p class="mb-0 text-muted" style="font-size: 0.75rem;"><?php echo mb_substr(strip_tags($d['icerik']), 0, 80); ?>...</p>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. İstatistik Özetleri -->
+    <div class="row g-3 g-md-4 mb-5">
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon-box bg-soft-primary"><i class="fas fa-book"></i></div>
+                <div class="small text-muted fw-bold">Kütüphanem</div>
+                <div class="h4 fw-bold mb-0"><?php echo (int)$total_products; ?></div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon-box bg-soft-success"><i class="fas fa-check-double"></i></div>
+                <div class="small text-muted fw-bold">Bitirilen Sınav</div>
+                <div class="h4 fw-bold mb-0"><?php echo (int)$total_exams_taken; ?></div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon-box bg-soft-warning"><i class="fas fa-chart-line"></i></div>
+                <div class="small text-muted fw-bold">Genel Net Ort.</div>
+                <div class="h4 fw-bold mb-0"><?php echo number_format((float)$avg_net, 2); ?></div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <div class="stat-icon-box bg-light text-dark"><i class="fas fa-award"></i></div>
+                <div class="small text-muted fw-bold">Sıralama</div>
+                <div class="h4 fw-bold mb-0">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. İçerik Sekmeleri -->
+    <div class="text-center mb-4">
+        <ul class="nav nav-pills nav-pills-custom d-inline-flex shadow-sm p-1 bg-white rounded-pill" id="dashTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#library"><i class="fas fa-th-large me-2"></i>Kütüphanem</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#history"><i class="fas fa-poll me-2"></i>Sınav Geçmişim</button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tab-content" id="dashTabContent">
+        <!-- SEKME: KÜTÜPHANEM -->
+        <div class="tab-pane fade show active" id="library">
+            <?php if (empty($kutuphane)): ?>
+                <div class="text-center py-5 bg-white rounded-4 shadow-sm border border-dashed">
+                    <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
+                    <h5 class="fw-bold text-muted">Kütüphanen henüz boş.</h5>
+                    <p class="text-muted small">Erişim kodunu girerek dökümanlarını hemen ekleyebilirsin.</p>
+                </div>
+            <?php else: ?>
+                <div class="row g-4">
+                    <?php foreach ($kutuphane as $item): ?>
+                        <div class="col-md-6 col-lg-4">
+                            <div class="dash-product-card">
+                                <div class="card-img-container position-relative">
+                                    <img src="<?php echo !empty($item['resim_url']) ? $item['resim_url'] : 'https://placehold.co/600x400/E0E7FF/4A69FF?text=Yayın+Görseli'; ?>" alt="Kapak">
+                                    <span class="badge bg-dark bg-opacity-75 position-absolute top-0 start-0 m-3 px-3 py-2 rounded-pill small">
+                                        <?php echo ($item['tur'] == 'deneme') ? 'Deneme' : 'Soru Bankası'; ?>
+                                    </span>
+                                </div>
+                                <div class="card-body p-4">
+                                    <h6 class="fw-bold text-dark mb-1"><?php echo escape_html($item['deneme_adi']); ?></h6>
+                                    <p class="text-muted mb-4" style="font-size: 0.8rem;"><i class="fas fa-pen-nib text-primary me-1"></i> <?php echo escape_html($item['yazar_adi'] ?: SITE_NAME); ?></p>
+                                    
+                                    <div class="row g-2">
+                                        <?php if (!empty($item['soru_kitapcik_dosyasi'])): ?>
+                                            <div class="col-6">
+                                                <a href="download_secure_pdf.php?id=<?php echo $item['id']; ?>&type=question" class="btn btn-outline-primary btn-sm w-100 rounded-pill fw-bold">
+                                                    Soru Kitapçığı
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($item['cozum_linki'])): ?>
+                                            <div class="col-6">
+                                                <a href="download_secure_pdf.php?id=<?php echo $item['id']; ?>&type=solution" class="btn btn-outline-success btn-sm w-100 rounded-pill fw-bold">
+                                                    Çözüm İndir
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($item['tur'] === 'deneme'): ?>
+                                            <div class="col-12 mt-2">
+                                                <form action="start_exam.php" method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                                    <input type="hidden" name="deneme_id" value="<?php echo $item['id']; ?>">
+                                                    <button type="submit" class="btn btn-theme-primary btn-sm w-100 rounded-pill fw-bold">
+                                                        <i class="fas fa-edit me-2"></i>Optik Form ve Sonuçlar
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- SEKME: SINAV GEÇMİŞİM -->
+        <div class="tab-pane fade" id="history">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start ps-4 small fw-bold">DENEME DETAYI</th>
+                                <th class="small fw-bold">D / Y / B</th>
+                                <th class="small fw-bold">NET</th>
+                                <th class="small fw-bold">PUAN</th>
+                                <th class="small fw-bold">TARİH</th>
+                                <th class="text-end pe-4 small fw-bold">AKSİYON</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (empty($history)): ?>
+                                <tr><td colspan="6" class="py-5 text-muted small italic">Henüz tamamlanmış bir sınavın yok. Başarılar dileriz!</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($history as $res): ?>
+                                    <?php 
+                                        $sonuc_aciklama_dt = new DateTime($res['sonuc_aciklama_tarihi'], new DateTimeZone('Europe/Istanbul'));
+                                        $now = new DateTime('now', new DateTimeZone('Europe/Istanbul'));
+                                        $sonuclar_hazir = ($now >= $sonuc_aciklama_dt);
+                                    ?>
+                                    <tr>
+                                        <td class="text-start ps-4">
+                                            <div class="fw-bold text-dark small"><?php echo escape_html($res['deneme_adi']); ?></div>
+                                            <div class="text-muted" style="font-size: 0.7rem;"><?php echo $res['soru_sayisi']; ?> Soru</div>
+                                        </td>
+                                        <td>
+                                            <span class="text-success fw-bold"><?php echo $res['dogru_sayisi']; ?></span> <span class="text-muted mx-1">/</span>
+                                            <span class="text-danger fw-bold"><?php echo $res['yanlis_sayisi']; ?></span> <span class="text-muted mx-1">/</span>
+                                            <span class="text-muted fw-bold"><?php echo $res['bos_sayisi']; ?></span>
+                                        </td>
+                                        <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3"><?php echo number_format((float)$res['net_sayisi'], 2); ?></span></td>
+                                        <td class="fw-bold text-dark"><?php echo number_format((float)$res['puan'], 2); ?></td>
+                                        <td class="text-muted small"><?php echo date('d.m.Y', strtotime($res['sinav_tamamlama_tarihi'])); ?></td>
+                                        <td class="text-end pe-4">
+                                            <div class="btn-group shadow-sm rounded-3">
+                                                <?php if($sonuclar_hazir): ?>
+                                                    <a href="results.php?katilim_id=<?php echo $res['id']; ?>" class="btn btn-sm btn-white border-end px-3 fw-bold text-primary" title="Detaylı Analiz"><i class="fas fa-chart-pie me-1"></i> Analiz</a>
+                                                    <a href="indir_karne.php?katilim_id=<?php echo $res['id']; ?>" class="btn btn-sm btn-white px-2 text-danger" title="Karne İndir"><i class="fas fa-file-pdf"></i></a>
+                                                <?php else: ?>
+                                                    <button class="btn btn-sm btn-light border px-3 disabled small" title="Sonuçlar Hazırlanıyor..."><i class="fas fa-clock me-1"></i> Bekleniyor</button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php if(!empty($history)): ?>
+                <p class="mt-3 text-center text-muted small"><i class="fas fa-info-circle me-1"></i> Sıralama sonuçları deneme açıklanma tarihinde listene eklenir.</p>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
 
-<!-- Yeni İçerik Ekleme (Kod Girme) Bölümü -->
-<div class="row justify-content-center mb-5">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm card-theme border-theme-primary">
-            <div class="card-body p-4">
-                <h5 class="card-title text-center text-theme-primary mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-plus-circle-fill me-2" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3z"/></svg>
-                    Yeni İçerik Ekle
-                </h5>
-                <form action="add_product_with_code.php" method="POST" class="d-flex gap-2">
+<!-- Modal: Yeni Kod Tanımlama -->
+<div class="modal fade" id="addCodeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0 pe-4 pt-4">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 p-md-5 pt-2">
+                <div class="text-center mb-4">
+                    <div class="bg-primary bg-opacity-10 text-primary p-4 rounded-circle d-inline-block mb-3" style="width:80px; height:80px;">
+                        <i class="fas fa-plus fa-2x"></i>
+                    </div>
+                    <h4 class="fw-bold">İçerik Kodunu Tanımla</h4>
+                    <p class="text-muted small">Aldığınız aktivasyon kodunu buraya girerek yayını kütüphanenize anında ekleyebilirsiniz.</p>
+                </div>
+                <form action="add_product_with_code.php" method="POST">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                    <input type="text" name="urun_kodu" class="form-control input-theme text-uppercase" placeholder="Erişim Kodunu Giriniz" required>
-                    <button type="submit" class="btn btn-theme-primary px-4">Ekle</button>
+                    <div class="mb-4">
+                        <input type="text" name="urun_kodu" class="form-control form-control-lg input-theme text-center fw-bold text-uppercase" placeholder="KODU BURAYA YAZIN" required autofocus>
+                    </div>
+                    <button type="submit" class="btn btn-theme-primary btn-lg w-100 shadow rounded-pill py-3">AKTİF ET</button>
                 </form>
-                <div class="form-text text-center mt-2 text-muted small">Deneme veya soru bankası kodunuzu girerek kütüphanenizi genişletin.</div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Sekmeler (Tabs) -->
-<ul class="nav nav-tabs nav-fill mb-4" id="libraryTabs" role="tablist">
-  <li class="nav-item" role="presentation">
-    <button class="nav-link active fw-bold" id="denemeler-tab" data-bs-toggle="tab" data-bs-target="#denemeler" type="button" role="tab" aria-controls="denemeler" aria-selected="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square me-2" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/></svg>
-        Deneme Sınavlarım
-    </button>
-  </li>
-  <li class="nav-item" role="presentation">
-    <button class="nav-link fw-bold" id="kaynaklar-tab" data-bs-toggle="tab" data-bs-target="#kaynaklar" type="button" role="tab" aria-controls="kaynaklar" aria-selected="false">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-book-half me-2" viewBox="0 0 16 16"><path d="M8.5 2.687c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/></svg>
-        Soru Bankası / Kaynaklar
-    </button>
-  </li>
-</ul>
-
-<div class="tab-content" id="libraryTabsContent">
-    
-    <!-- TAB 1: DENEME SINAVLARI -->
-    <div class="tab-pane fade show active" id="denemeler" role="tabpanel" aria-labelledby="denemeler-tab">
-        <?php if (empty($denemeler)): ?>
-            <div class="alert alert-theme-info text-center py-5">
-                <h4>Aktif bir deneme sınavınız bulunmuyor.</h4>
-                <p>Erişim kodu girerek veya mağazadan satın alarak deneme ekleyebilirsiniz.</p>
-                <a href="index.php" class="btn btn-theme-primary mt-3">Mağazaya Git</a>
-            </div>
-        <?php else: ?>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                <?php foreach ($denemeler as $product): ?>
-                    <div class="col">
-                        <div class="card h-100 shadow-sm card-theme">
-                            <?php if (!empty($product['resim_url'])): ?>
-                                <img src="<?php echo escape_html($product['resim_url']); ?>" class="card-img-top" alt="<?php echo escape_html($product['deneme_adi']); ?>" style="max-height: 180px; object-fit: cover;">
-                            <?php endif; ?>
-                            <div class="card-body d-flex flex-column">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge bg-primary">Deneme Sınavı</span>
-                                    <small class="text-muted" style="font-size: 0.75rem;"><?php echo format_tr_datetime($product['erisim_tarihi'], 'd M Y'); ?></small>
-                                </div>
-                                <h5 class="card-title text-theme-primary mb-2"><?php echo escape_html($product['deneme_adi']); ?></h5>
-                                <?php if (!empty($product['kisa_aciklama'])): ?>
-                                    <p class="card-text text-theme-dark small flex-grow-1 mb-3"><?php echo nl2br(escape_html($product['kisa_aciklama'])); ?></p>
-                                <?php else: ?>
-                                    <p class="card-text text-muted small flex-grow-1 mb-3">Açıklama bulunmuyor.</p>
-                                <?php endif; ?>
-                                
-                                <div class="mt-auto d-grid gap-2">
-                                    
-                                    <!-- YENİ: Deneme Sınavı İçin Soru Kitapçığı İndirme Butonu -->
-                                    <?php if (!empty($product['soru_kitapcik_dosyasi'])): ?>
-                                        <a href="download_secure_pdf.php?id=<?php echo $product['id']; ?>&type=question" class="btn btn-outline-primary btn-sm">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-pdf me-1" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z"/><path d="M4.603 14.087a.81.81 0 0 1-.438-.42c-.195-.388-.13-.771.08-1.177.138-.272.367-.554.65-.755a.5.5 0 0 1 .43.86c-.21.15-.382.318-.482.517-.117.233-.057.514.155.686a.5.5 0 0 1-.395.289"/></svg>
-                                            Soru Kitapçığı İndir
-                                        </a>
-                                    <?php endif; ?>
-
-                                    <?php 
-                                        $exam_status = $exam_statuses[$product['id']] ?? null;
-                                        if ($exam_status): 
-                                            // Sınav bitmişse veya devam ediyorsa
-                                            if ($exam_status['sinav_tamamlama_tarihi']): ?>
-                                                <a href="results.php?katilim_id=<?php echo $exam_status['katilim_id']; ?>" class="btn btn-success btn-sm">Sonuçları Gör / Çözümler</a>
-                                            <?php else: ?>
-                                                <a href="exam.php?katilim_id=<?php echo $exam_status['katilim_id']; ?>" class="btn btn-warning btn-sm">Sınava Devam Et</a>
-                                            <?php endif; ?>
-                                        <?php else: ?>
-                                            <!-- Sınav Başlamamış -->
-                                            <form action="start_exam.php" method="POST">
-                                                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                                <input type="hidden" name="deneme_id" value="<?php echo $product['id']; ?>">
-                                                <button type="submit" class="btn btn-theme-primary btn-sm w-100">Optik Formu Doldur / Sınava Başla</button>
-                                            </form>
-                                        <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- TAB 2: SORU BANKALARI / KAYNAKLAR -->
-    <div class="tab-pane fade" id="kaynaklar" role="tabpanel" aria-labelledby="kaynaklar-tab">
-        <?php if (empty($kaynaklar)): ?>
-            <div class="alert alert-theme-info text-center py-5">
-                <h4>Kütüphanenizde soru bankası bulunmuyor.</h4>
-                <p>Erişim kodu ile kaynak ekleyebilirsiniz.</p>
-            </div>
-        <?php else: ?>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                <?php foreach ($kaynaklar as $product): ?>
-                    <div class="col">
-                        <div class="card h-100 shadow-sm card-theme border-theme-primary">
-                            <?php if (!empty($product['resim_url'])): ?>
-                                <img src="<?php echo escape_html($product['resim_url']); ?>" class="card-img-top" alt="<?php echo escape_html($product['deneme_adi']); ?>" style="max-height: 250px; object-fit: contain; background-color:#f8f9fa;">
-                            <?php endif; ?>
-                            <div class="card-body d-flex flex-column">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge bg-secondary">Soru Bankası</span>
-                                </div>
-                                <h5 class="card-title text-theme-primary mb-2"><?php echo escape_html($product['deneme_adi']); ?></h5>
-                                <p class="card-text text-theme-dark small flex-grow-1 mb-3">
-                                    <?php echo !empty($product['kisa_aciklama']) ? nl2br(escape_html($product['kisa_aciklama'])) : 'Kaynak dosyaları aşağıdadır.'; ?>
-                                </p>
-                                
-                                <div class="mt-auto d-grid gap-2">
-                                    <!-- Soru Bankası İçin Doğrudan İndirme Linkleri -->
-                                    <?php if (!empty($product['soru_kitapcik_dosyasi'])): ?>
-                                        <a href="download_secure_pdf.php?id=<?php echo $product['id']; ?>&type=question" class="btn btn-theme-primary btn-sm">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-2" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
-                                            Soru Dosyasını İndir
-                                        </a>
-                                    <?php endif; ?>
-
-                                    <?php if (!empty($product['cozum_linki'])): ?>
-                                        <a href="download_secure_pdf.php?id=<?php echo $product['id']; ?>&type=solution" class="btn btn-outline-secondary btn-sm">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal-check me-2" viewBox="0 0 16 16"><path d="M10.854 6.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 8.793l2.646-2.647a.5.5 0 0 1 .708 0"/><path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v1H3V2a2 2 0 0 1 2-2"/><path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V9h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z"/></svg>
-                                            Çözüm Dosyasını İndir
-                                        </a>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-</div>
-
-<div class="text-center mt-5 pb-4">
-    <a href="logout.php" class="btn btn-danger">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-box-arrow-right me-2" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/></svg>
-        Çıkış Yap
-    </a>
-</div>
-
-<?php
-include_once __DIR__ . '/templates/footer.php'; 
-?>
+<?php include_once __DIR__ . '/templates/footer.php'; ?>

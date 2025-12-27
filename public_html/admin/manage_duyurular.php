@@ -6,218 +6,164 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/admin_functions.php';
 
 requireAdminLogin();
-$page_title = "Duyuruları Yönet";
+$page_title = "Duyuru Yönetimi";
 $csrf_token = generate_admin_csrf_token();
-include_once __DIR__ . '/../templates/admin_header.php';
 
-// İşlem (Ekleme/Güncelleme/Silme)
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
+$action = $_GET['action'] ?? 'list';
+$duyuru_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-// duyuru_id'yi GET veya POST'tan alıp doğrulama
-$duyuru_id_raw = $_POST['duyuru_id'] ?? $_GET['duyuru_id'] ?? null;
-$duyuru_id = null;
-if ($duyuru_id_raw !== null) {
-    $duyuru_id_validated = filter_var($duyuru_id_raw, FILTER_VALIDATE_INT);
-    if ($duyuru_id_validated !== false) { // 0 da geçerli bir ID olabilir (genelde olmaz ama filter_var öyle döner)
-        $duyuru_id = $duyuru_id_validated;
-    }
-}
-
-
-// Silme İşlemi
-if ($action === 'delete' && $duyuru_id !== null) { // $duyuru_id'nin null olmadığını kontrol et
-    if (isset($_POST['confirm_delete']) && verify_admin_csrf_token($_POST['csrf_token'])) {
-        try {
-            $stmt = $pdo->prepare("DELETE FROM duyurular WHERE id = ?");
-            $stmt->execute([$duyuru_id]);
-            set_admin_flash_message('success', 'Duyuru başarıyla silindi.');
-        } catch (PDOException $e) {
-            set_admin_flash_message('error', 'Duyuru silinirken hata: ' . $e->getMessage());
-        }
-        header("Location: manage_duyurular.php");
-        exit;
-    }
-}
-
-
-// Ekleme/Güncelleme İşlemi
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($action === 'add' || $action === 'edit')) {
-    if (verify_admin_csrf_token($_POST['csrf_token'])) {
+// --- İŞLEMLER ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_admin_csrf_token($_POST['csrf_token'])) {
+        set_admin_flash_message('error', 'Güvenlik doğrulaması başarısız.');
+    } else {
         $baslik = trim($_POST['baslik'] ?? '');
         $icerik = trim($_POST['icerik'] ?? '');
         $aktif_mi = isset($_POST['aktif_mi']) ? 1 : 0;
-        // Düzenleme için duyuru_id'yi POST'tan al (formdan gönderildiği için)
-        $posted_duyuru_id_for_edit = null;
-        if ($action === 'edit') {
-            $posted_duyuru_id_raw = $_POST['duyuru_id'] ?? null;
-             if ($posted_duyuru_id_raw !== null) {
-                $posted_duyuru_id_validated = filter_var($posted_duyuru_id_raw, FILTER_VALIDATE_INT);
-                if ($posted_duyuru_id_validated !== false) {
-                    $posted_duyuru_id_for_edit = $posted_duyuru_id_validated;
-                }
-            }
-        }
-
+        $p_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 
         if (empty($baslik) || empty($icerik)) {
-            set_admin_flash_message('error', 'Başlık ve içerik alanları boş bırakılamaz.');
-        } elseif ($action === 'edit' && $posted_duyuru_id_for_edit === null) {
-            set_admin_flash_message('error', 'Düzenlenecek duyuru ID\'si bulunamadı.');
+            set_admin_flash_message('error', 'Lütfen tüm alanları doldurun.');
         } else {
             try {
-                if ($action === 'add') {
+                if ($p_id) { // Güncelleme
+                    $stmt = $pdo->prepare("UPDATE duyurular SET baslik = ?, icerik = ?, aktif_mi = ? WHERE id = ?");
+                    $stmt->execute([$baslik, $icerik, $aktif_mi, $p_id]);
+                    set_admin_flash_message('success', 'Duyuru başarıyla güncellendi.');
+                } else { // Ekleme
                     $stmt = $pdo->prepare("INSERT INTO duyurular (baslik, icerik, aktif_mi) VALUES (?, ?, ?)");
                     $stmt->execute([$baslik, $icerik, $aktif_mi]);
-                    set_admin_flash_message('success', 'Duyuru başarıyla eklendi.');
-                } elseif ($action === 'edit' && $posted_duyuru_id_for_edit !== null) {
-                    $stmt = $pdo->prepare("UPDATE duyurular SET baslik = ?, icerik = ?, aktif_mi = ? WHERE id = ?");
-                    $stmt->execute([$baslik, $icerik, $aktif_mi, $posted_duyuru_id_for_edit]);
-                    set_admin_flash_message('success', 'Duyuru başarıyla güncellendi.');
+                    set_admin_flash_message('success', 'Yeni duyuru yayınlandı.');
                 }
-                header("Location: manage_duyurular.php");
-                exit;
+                redirect('manage_duyurular.php');
             } catch (PDOException $e) {
-                set_admin_flash_message('error', 'İşlem sırasında veritabanı hatası: ' . $e->getMessage());
+                set_admin_flash_message('error', 'Hata: ' . $e->getMessage());
             }
         }
-    } else {
-        set_admin_flash_message('error', 'Geçersiz CSRF token.');
-    }
-    // Hata durumunda formu tekrar doldurmak için verileri sakla
-    $_SESSION['form_data'] = $_POST;
-    // Eğer düzenleme ise ve ID varsa, URL'ye ekle
-    $redirect_url = "manage_duyurular.php";
-    if ($action === 'edit' && isset($_POST['duyuru_id'])) {
-        $redirect_url .= "?action=edit_form&duyuru_id=" . (int)$_POST['duyuru_id'];
-    } else {
-        $redirect_url .= "?action=add_form";
-    }
-    header("Location: " . $redirect_url);
-    exit;
-}
-
-// Düzenleme veya silme formu için duyuru bilgilerini çek
-$edit_duyuru = null;
-if (($action === 'edit_form' || $action === 'delete_form') && $duyuru_id !== null) {
-    try {
-        $stmt = $pdo->prepare("SELECT * FROM duyurular WHERE id = ?");
-        $stmt->execute([$duyuru_id]);
-        $edit_duyuru = $stmt->fetch();
-        if (!$edit_duyuru && $action === 'edit_form') {
-             set_admin_flash_message('error', 'Düzenlenecek duyuru bulunamadı.');
-             header("Location: manage_duyurular.php");
-             exit;
-        }
-    } catch (PDOException $e) {
-        set_admin_flash_message('error', 'Duyuru bilgileri alınırken hata: ' . $e->getMessage());
-    }
-}
-// Hatalı form gönderiminden sonra verileri geri yükle
-if (isset($_SESSION['form_data'])) {
-    $form_data = $_SESSION['form_data'];
-    unset($_SESSION['form_data']);
-    
-    $form_action = $form_data['action'] ?? ''; // Formdan gelen action
-    $form_duyuru_id = isset($form_data['duyuru_id']) ? filter_var($form_data['duyuru_id'], FILTER_VALIDATE_INT) : null;
-
-    // Eğer mevcut action edit_form ise ve form_data'dan gelen ID ile URL'deki ID eşleşiyorsa
-    if ($action === 'edit_form' && $duyuru_id !== null && $form_action === 'edit' && $form_duyuru_id === $duyuru_id) {
-        $edit_duyuru['baslik'] = $form_data['baslik'] ?? ($edit_duyuru['baslik'] ?? '');
-        $edit_duyuru['icerik'] = $form_data['icerik'] ?? ($edit_duyuru['icerik'] ?? '');
-        $edit_duyuru['aktif_mi'] = isset($form_data['aktif_mi']) ? 1 : 0;
-    } elseif ($action === 'add_form' && $form_action === 'add') { // Eğer mevcut action add_form ise
-         $edit_duyuru = ['baslik' => $form_data['baslik'] ?? '', 'icerik' => $form_data['icerik'] ?? '', 'aktif_mi' => isset($form_data['aktif_mi']) ? 1 : 0];
     }
 }
 
-
-// Duyuruları Listele
-try {
-    $stmt_list = $pdo->query("SELECT * FROM duyurular ORDER BY olusturulma_tarihi DESC");
-    $duyurular = $stmt_list->fetchAll();
-} catch (PDOException $e) {
-    set_admin_flash_message('error', "Duyurular listelenirken hata: " . $e->getMessage());
-    $duyurular = [];
+// Silme İşlemi
+if ($action === 'delete' && $duyuru_id) {
+    $pdo->prepare("DELETE FROM duyurular WHERE id = ?")->execute([$duyuru_id]);
+    set_admin_flash_message('success', 'Duyuru sistemden kaldırıldı.');
+    redirect('manage_duyurular.php');
 }
 
+// Düzenleme Verisi
+$edit_data = ['baslik' => '', 'icerik' => '', 'aktif_mi' => 1, 'id' => null];
+if ($action === 'edit' && $duyuru_id) {
+    $stmt = $pdo->prepare("SELECT * FROM duyurular WHERE id = ?");
+    $stmt->execute([$duyuru_id]);
+    $res = $stmt->fetch();
+    if ($res) $edit_data = $res;
+}
+
+// Listeleme
+$duyurular = $pdo->query("SELECT * FROM duyurular ORDER BY id DESC")->fetchAll();
+
+include_once __DIR__ . '/../templates/admin_header.php';
 ?>
 
-<div class="admin-page-title">Duyuru Yönetimi</div>
+<div class="row g-4">
+    <!-- SOL: Form Alanı -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 100px;">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-theme-primary">
+                    <i class="fas <?php echo $edit_data['id'] ? 'fa-edit' : 'fa-plus-circle'; ?> me-2"></i>
+                    <?php echo $edit_data['id'] ? 'Duyuruyu Düzenle' : 'Yeni Duyuru Oluştur'; ?>
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <form action="manage_duyurular.php" method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                    <?php if($edit_data['id']): ?>
+                        <input type="hidden" name="id" value="<?php echo $edit_data['id']; ?>">
+                    <?php endif; ?>
 
-<?php if ($action === 'add_form' || ($action === 'edit_form' && $edit_duyuru)): ?>
-    <h3><?php echo $action === 'add_form' ? 'Yeni Duyuru Ekle' : 'Duyuruyu Düzenle'; ?></h3>
-    <form action="manage_duyurular.php" method="POST" style="padding:15px; background-color:#f9f9f9; border-radius:5px; margin-bottom:20px;">
-        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-        <input type="hidden" name="action" value="<?php echo $action === 'add_form' ? 'add' : 'edit'; ?>">
-        <?php if ($action === 'edit_form' && $edit_duyuru && isset($edit_duyuru['id'])): ?>
-            <input type="hidden" name="duyuru_id" value="<?php echo $edit_duyuru['id']; ?>">
-        <?php endif; ?>
-        
-        <div class="form-group">
-            <label for="baslik">Başlık:</label>
-            <input type="text" id="baslik" name="baslik" class="input-admin" value="<?php echo escape_html($edit_duyuru['baslik'] ?? ''); ?>" required>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">DUYURU BAŞLIĞI</label>
+                        <input type="text" name="baslik" class="form-control input-theme" value="<?php echo escape_html($edit_data['baslik']); ?>" placeholder="Örn: Yeni Sınav Tarihi Hakkında" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">MESAJ İÇERİĞİ</label>
+                        <textarea name="icerik" class="form-control input-theme" rows="6" placeholder="Öğrencilere iletmek istediğiniz mesaj..." required><?php echo escape_html($edit_data['icerik']); ?></textarea>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" name="aktif_mi" value="1" id="activeCheck" <?php echo $edit_data['aktif_mi'] ? 'checked' : ''; ?>>
+                        <label class="form-check-label fw-bold small" for="activeCheck">YAYINDA (ÖĞRENCİLER GÖREBİLİR)</label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-theme-primary py-2 shadow-sm">
+                            <i class="fas fa-save me-2"></i> Duyuruyu Kaydet
+                        </button>
+                        <?php if($edit_data['id']): ?>
+                            <a href="manage_duyurular.php" class="btn btn-light border py-2">Vazgeç</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="icerik">İçerik (HTML kullanılabilir):</label>
-            <textarea id="icerik" name="icerik" class="input-admin" rows="5" required><?php echo escape_html($edit_duyuru['icerik'] ?? ''); ?></textarea>
+    </div>
+
+    <!-- SAĞ: Liste Alanı -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold">Mevcut Duyurular</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th class="ps-4">Duyuru</th>
+                                <th class="text-center">Durum</th>
+                                <th class="text-end pe-4">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if(empty($duyurular)): ?>
+                                <tr><td colspan="3" class="text-center py-5 text-muted small">Henüz bir duyuru eklenmemiş.</td></tr>
+                            <?php else: ?>
+                                <?php foreach($duyurular as $d): ?>
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="fw-bold small mb-1"><?php echo escape_html($d['baslik']); ?></div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">
+                                            <i class="far fa-calendar-alt me-1"></i> <?php echo date('d.m.Y H:i', strtotime($d['olusturulma_tarihi'])); ?>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if($d['aktif_mi']): ?>
+                                            <span class="badge bg-success-subtle text-success rounded-pill px-3">Yayında</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">Pasif</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group">
+                                            <a href="manage_duyurular.php?action=edit&id=<?php echo $d['id']; ?>" class="btn btn-sm btn-outline-primary" title="Düzenle">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="manage_duyurular.php?action=delete&id=<?php echo $d['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bu duyuru kalıcı olarak silinecek. Emin misiniz?')" title="Sil">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="aktif_mi">
-                <input type="checkbox" id="aktif_mi" name="aktif_mi" value="1" <?php echo (isset($edit_duyuru['aktif_mi']) && $edit_duyuru['aktif_mi'] == 1) ? 'checked' : ($action === 'add_form' && (!isset($edit_duyuru) || $edit_duyuru['aktif_mi'] !== 0) ? 'checked' : ''); ?>>
-                Aktif (Kullanıcı panosunda görünsün mü?)
-            </label>
-        </div>
-        <button type="submit" class="btn-admin green"><?php echo $action === 'add_form' ? 'Ekle' : 'Güncelle'; ?></button>
-        <a href="manage_duyurular.php" class="btn-admin yellow" style="margin-left: 10px;">İptal</a>
-    </form>
-<?php elseif ($action === 'delete_form' && $edit_duyuru): ?>
-    <h3>Duyuruyu Sil Onayı</h3>
-    <p>Aşağıdaki duyuruyu silmek istediğinizden emin misiniz?</p>
-    <p><strong>Başlık:</strong> <?php echo escape_html($edit_duyuru['baslik']); ?></p>
-    <form action="manage_duyurular.php" method="POST">
-        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-        <input type="hidden" name="action" value="delete">
-        <input type="hidden" name="duyuru_id" value="<?php echo $edit_duyuru['id']; ?>">
-        <input type="hidden" name="confirm_delete" value="1">
-        <button type="submit" class="btn-admin red">Evet, Sil</button>
-        <a href="manage_duyurular.php" class="btn-admin yellow" style="margin-left: 10px;">Hayır, İptal Et</a>
-    </form>
-<?php else: ?>
-    <p><a href="manage_duyurular.php?action=add_form" class="btn-admin green">Yeni Duyuru Ekle</a></p>
-<?php endif; ?>
+    </div>
+</div>
 
-
-<h3 class="mt-4">Mevcut Duyurular</h3>
-<?php if (empty($duyurular)): ?>
-    <p class="message-box info">Henüz hiç duyuru eklenmemiş.</p>
-<?php else: ?>
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Başlık</th>
-                <th>Aktif Mi?</th>
-                <th>Oluşturulma Tarihi</th>
-                <th>İşlemler</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($duyurular as $duyuru): ?>
-            <tr>
-                <td><?php echo $duyuru['id']; ?></td>
-                <td><?php echo escape_html($duyuru['baslik']); ?></td>
-                <td><?php echo $duyuru['aktif_mi'] ? '<span style="color:green;">Evet</span>' : '<span style="color:red;">Hayır</span>'; ?></td>
-                <td><?php echo format_tr_datetime($duyuru['olusturulma_tarihi']); ?></td>
-                <td class="actions">
-                    <a href="manage_duyurular.php?action=edit_form&duyuru_id=<?php echo $duyuru['id']; ?>" class="btn-admin yellow">Düzenle</a>
-                    <a href="manage_duyurular.php?action=delete_form&duyuru_id=<?php echo $duyuru['id']; ?>" class="btn-admin red">Sil</a>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
-<?php endif; ?>
-
-<?php
-include_once __DIR__ . '/../templates/admin_footer.php';
-?>
+<?php include_once __DIR__ . '/../templates/admin_footer.php'; ?>

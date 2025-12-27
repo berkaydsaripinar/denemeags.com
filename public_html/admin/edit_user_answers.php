@@ -10,240 +10,161 @@ requireAdminLogin();
 $katilim_id = filter_input(INPUT_GET, 'katilim_id', FILTER_VALIDATE_INT);
 if (!$katilim_id) {
     set_admin_flash_message('error', 'Geçersiz katılım ID.');
-    header("Location: view_kullanicilar.php"); // Veya bir önceki sayfaya
+    header("Location: view_kullanicilar.php");
     exit;
 }
 
-$csrf_token = generate_admin_csrf_token();
-$options = ['A', 'B', 'C', 'D', 'E', '']; // Boş seçeneği de ekle
-
 try {
-    // Katılım ve deneme bilgilerini çek
+    // Katılım ve Öğrenci Bilgisi
     $stmt_info = $pdo->prepare("
-        SELECT kk.id AS katilim_id, kk.kullanici_id, kk.deneme_id, 
-               u.ad_soyad, d.deneme_adi, d.soru_sayisi
+        SELECT kk.*, u.ad_soyad, u.email, d.deneme_adi, d.soru_sayisi
         FROM kullanici_katilimlari kk
         JOIN kullanicilar u ON kk.kullanici_id = u.id
         JOIN denemeler d ON kk.deneme_id = d.id
         WHERE kk.id = ?
     ");
     $stmt_info->execute([$katilim_id]);
-    $participation_info = $stmt_info->fetch();
+    $info = $stmt_info->fetch();
 
-    if (!$participation_info) {
-        set_admin_flash_message('error', 'Katılım bulunamadı.');
+    if (!$info) {
+        set_admin_flash_message('error', 'Kayıt bulunamadı.');
         header("Location: view_kullanicilar.php");
         exit;
     }
-    $deneme_id = $participation_info['deneme_id'];
-    $soru_sayisi_deneme = $participation_info['soru_sayisi'];
 
-    // Cevap anahtarını çek
-    $stmt_answer_key = $pdo->prepare("SELECT soru_no, dogru_cevap FROM cevap_anahtarlari WHERE deneme_id = ?");
-    $stmt_answer_key->execute([$deneme_id]);
-    $answer_key_map = $stmt_answer_key->fetchAll(PDO::FETCH_KEY_PAIR); // soru_no => dogru_cevap
+    // Cevap Anahtarı Map
+    $stmt_key = $pdo->prepare("SELECT soru_no, dogru_cevap FROM cevap_anahtarlari WHERE deneme_id = ?");
+    $stmt_key->execute([$info['deneme_id']]);
+    $answer_key = $stmt_key->fetchAll(PDO::FETCH_KEY_PAIR);
 
-    // Kullanıcının mevcut cevaplarını çek
-    $stmt_user_answers = $pdo->prepare("SELECT soru_no, verilen_cevap, dogru_mu FROM kullanici_cevaplari WHERE katilim_id = ?");
-    $stmt_user_answers->execute([$katilim_id]);
-    $user_answers_raw = $stmt_user_answers->fetchAll(PDO::FETCH_ASSOC);
-    $user_answers_map = [];
-    foreach ($user_answers_raw as $ans) {
-        $user_answers_map[$ans['soru_no']] = $ans;
-    }
+    // Öğrenci Cevapları Map
+    $stmt_user_ans = $pdo->prepare("SELECT soru_no, verilen_cevap, dogru_mu FROM kullanici_cevaplari WHERE katilim_id = ?");
+    $stmt_user_ans->execute([$katilim_id]);
+    $user_answers = $stmt_user_ans->fetchAll(PDO::FETCH_UNIQUE|PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    set_admin_flash_message('error', "Veri yüklenirken hata: " . $e->getMessage());
-    // Hata durumunda bir önceki sayfaya yönlendirme daha iyi olabilir
-    $participation_info = null; // Hata durumunda formu gösterme
+    die("Hata: " . $e->getMessage());
 }
 
-
-// Form gönderildiğinde
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $participation_info) {
-    if (!verify_admin_csrf_token($_POST['csrf_token'])) {
-        set_admin_flash_message('error', 'Geçersiz CSRF token.');
-    } else {
-        $gelen_cevaplar = $_POST['cevaplar'] ?? [];
-        $degisiklik_yapildi = false;
-
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (verify_admin_csrf_token($_POST['csrf_token'])) {
+        $posted_answers = $_POST['answers'] ?? [];
+        $pdo->beginTransaction();
         try {
-            $pdo->beginTransaction();
+            $dogru = 0; $yanlis = 0; $bos = 0;
+            
+            // Cevapları Güncelle
+            $stmt_upd = $pdo->prepare("INSERT INTO kullanici_cevaplari (katilim_id, soru_no, verilen_cevap, dogru_mu) 
+                                       VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE verilen_cevap = VALUES(verilen_cevap), dogru_mu = VALUES(dogru_mu)");
 
-            $stmt_update_user_answer = $pdo->prepare(
-                "UPDATE kullanici_cevaplari SET verilen_cevap = :verilen_cevap, dogru_mu = :dogru_mu 
-                 WHERE katilim_id = :katilim_id AND soru_no = :soru_no"
-            );
-            $stmt_insert_user_answer = $pdo->prepare( // Eğer cevap daha önce hiç kaydedilmemişse (olmamalı ama önlem)
-                "INSERT INTO kullanici_cevaplari (katilim_id, soru_no, verilen_cevap, dogru_mu) 
-                 VALUES (:katilim_id, :soru_no, :verilen_cevap, :dogru_mu)"
-            );
-
-
-            for ($i = 1; $i <= $soru_sayisi_deneme; $i++) {
-                $yeni_cevap = isset($gelen_cevaplar[$i]) ? trim($gelen_cevaplar[$i]) : null;
-                if ($yeni_cevap === '') $yeni_cevap = null; // Boş string yerine NULL kullan
-
-                $mevcut_verilen_cevap = $user_answers_map[$i]['verilen_cevap'] ?? null;
-
-                if ($yeni_cevap !== $mevcut_verilen_cevap) { // Sadece cevap değişmişse işlem yap
-                    $degisiklik_yapildi = true;
-                    $dogru_cevap_bu_soru = $answer_key_map[$i] ?? null;
-                    $yeni_dogru_mu = null;
-
-                    if ($yeni_cevap !== null && $dogru_cevap_bu_soru !== null) {
-                        $yeni_dogru_mu = ($yeni_cevap === $dogru_cevap_bu_soru) ? 1 : 0;
-                    }
-
-                    // Kayıt var mı kontrol et, yoksa insert, varsa update
-                    if(isset($user_answers_map[$i])) {
-                        $stmt_update_user_answer->execute([
-                            ':verilen_cevap' => $yeni_cevap,
-                            ':dogru_mu' => $yeni_dogru_mu,
-                            ':katilim_id' => $katilim_id,
-                            ':soru_no' => $i
-                        ]);
-                    } else {
-                         $stmt_insert_user_answer->execute([
-                            ':katilim_id' => $katilim_id,
-                            ':soru_no' => $i,
-                            ':verilen_cevap' => $yeni_cevap,
-                            ':dogru_mu' => $yeni_dogru_mu
-                        ]);
-                    }
-                }
-            }
-
-            if ($degisiklik_yapildi) {
-                // D/Y/B, Net, Puan'ı yeniden hesapla
-                $stmt_recalculate_check = $pdo->prepare("
-                    SELECT soru_no, dogru_mu FROM kullanici_cevaplari WHERE katilim_id = ?
-                ");
-                $stmt_recalculate_check->execute([$katilim_id]);
-                $guncel_cevaplar_list = $stmt_recalculate_check->fetchAll(PDO::FETCH_ASSOC);
-
-                $yeni_d = 0; $yeni_y = 0; $yeni_b = 0;
-                $cevaplanan_soru_sayisi = count($guncel_cevaplar_list);
-
-                foreach($guncel_cevaplar_list as $guncel_cvp){
-                    if($guncel_cvp['dogru_mu'] === 1) $yeni_d++;
-                    elseif($guncel_cvp['dogru_mu'] === 0) $yeni_y++;
-                    else $yeni_b++; // dogru_mu NULL ise boş
-                }
-                // Eğer tüm sorular için kayıt yoksa, kalanları boş say
-                if ($cevaplanan_soru_sayisi < $soru_sayisi_deneme) {
-                    $yeni_b += ($soru_sayisi_deneme - $cevaplanan_soru_sayisi);
-                }
-
-
-                $yeni_net = $yeni_d - ($yeni_y / NET_KATSAYISI);
-                $yeni_puan = $yeni_net * PUAN_CARPANI;
-
-                $stmt_update_summary = $pdo->prepare(
-                    "UPDATE kullanici_katilimlari SET 
-                     dogru_sayisi = ?, yanlis_sayisi = ?, bos_sayisi = ?, 
-                     net_sayisi = ?, puan = ?, puan_can_egrisi = NULL 
-                     WHERE id = ?"
-                );
-                $stmt_update_summary->execute([$yeni_d, $yeni_y, $yeni_b, $yeni_net, $yeni_puan, $katilim_id]);
-
-                // Çan eğrisini yeniden hesapla
-                recalculateAndApplyBellCurve($deneme_id, $pdo);
+            for($i=1; $i<=$info['soru_sayisi']; $i++) {
+                $ans = !empty($posted_answers[$i]) ? $posted_answers[$i] : null;
+                $is_correct = null;
                 
-                // Loglama
-                $admin_user = $_SESSION['admin_username'] ?? 'Bilinmeyen Admin';
-                $log_eylem = "Kullanıcı ID $participation_info[kullanici_id] için Katılım ID $katilim_id cevapları düzenlendi.";
-                $ip = $_SERVER['REMOTE_ADDR'] ?? 'Bilinmiyor';
-                $stmt_log = $pdo->prepare("INSERT INTO admin_loglari (admin_kullanici_adi, eylem, ip_adresi) VALUES (?, ?, ?)");
-                $stmt_log->execute([$admin_user, $log_eylem, $ip]);
-
-                set_admin_flash_message('success', 'Kullanıcının cevapları ve puanı başarıyla güncellendi. Çan eğrisi de yeniden hesaplandı.');
-            } else {
-                set_admin_flash_message('info', 'Herhangi bir değişiklik yapılmadı.');
+                if($ans === null) {
+                    $bos++;
+                } elseif($ans === ($answer_key[$i] ?? '')) {
+                    $dogru++;
+                    $is_correct = 1;
+                } else {
+                    $yanlis++;
+                    $is_correct = 0;
+                }
+                $stmt_upd->execute([$katilim_id, $i, $ans, $is_correct]);
             }
-            $pdo->commit();
 
-        } catch (PDOException $e) {
+            // Özeti Güncelle
+            $net = $dogru - ($yanlis / NET_KATSAYISI);
+            $puan = $net * PUAN_CARPANI;
+
+            $stmt_sum = $pdo->prepare("UPDATE kullanici_katilimlari SET dogru_sayisi=?, yanlis_sayisi=?, bos_sayisi=?, net_sayisi=?, puan=? WHERE id=?");
+            $stmt_sum->execute([$dogru, $yanlis, $bos, $net, $puan, $katilim_id]);
+
+            $pdo->commit();
+            set_admin_flash_message('success', 'Cevaplar başarıyla güncellendi ve puanlar yeniden hesaplandı.');
+            redirect("view_user_details.php?user_id=" . $info['kullanici_id']);
+        } catch (Exception $e) {
             $pdo->rollBack();
-            set_admin_flash_message('error', 'Güncelleme sırasında veritabanı hatası: ' . $e->getMessage());
+            set_admin_flash_message('error', 'Hata: ' . $e->getMessage());
         }
-        header("Location: edit_user_answers.php?katilim_id=" . $katilim_id);
-        exit;
     }
 }
 
-
-$page_title = "Cevap Düzenle: " . escape_html($participation_info['ad_soyad'] ?? '') . " - " . escape_html($participation_info['deneme_adi'] ?? '');
-include_once __DIR__ . '/../templates/admin_header.php'; // Üstbilgiyi burada çağırıyoruz, çünkü $page_title yukarıda set ediliyor.
+$page_title = "Cevap Düzenle: " . $info['ad_soyad'];
+include_once __DIR__ . '/../templates/admin_header.php';
 ?>
 
-<?php if ($participation_info): ?>
-    <div class="admin-page-title"><?php echo $page_title; ?></div>
-    <p>
-        <a href="view_user_details.php?user_id=<?php echo $participation_info['kullanici_id']; ?>" class="btn-admin yellow btn-sm">&laquo; Kullanıcı Detaylarına Geri Dön</a>
-    </p>
-    <p>Aşağıdaki tablodan kullanıcının cevaplarını değiştirebilirsiniz. Değişiklik sonrası "Cevapları Güncelle" butonuna basınız. Bu işlem kullanıcının D/Y/B, Net, Puan ve denemenin genel çan eğrisi puanlarını yeniden hesaplayacaktır.</p>
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h3 class="fw-bold mb-0 text-theme-primary">Optik Form Müdahale</h3>
+        <p class="text-muted small"><?php echo escape_html($info['deneme_adi']); ?> - #<?php echo $info['id']; ?></p>
+    </div>
+    <div class="col-auto">
+        <a href="view_user_details.php?user_id=<?php echo $info['kullanici_id']; ?>" class="btn btn-light border shadow-sm">
+            <i class="fas fa-times me-2"></i> Vazgeç
+        </a>
+    </div>
+</div>
 
-    <form action="edit_user_answers.php?katilim_id=<?php echo $katilim_id; ?>" method="POST">
-        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-        <div class="table-responsive">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Soru No</th>
-                        <th>Kullanıcının Cevabı</th>
-                        <th>Doğru Cevap</th>
-                        <th>Mevcut Durum</th>
-                        <th>Yeni Cevap</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php for ($i = 1; $i <= $soru_sayisi_deneme; $i++): ?>
-                        <?php 
-                            $mevcut_cevap_detay = $user_answers_map[$i] ?? ['verilen_cevap' => null, 'dogru_mu' => null];
-                            $mevcut_verilen = $mevcut_cevap_detay['verilen_cevap'];
-                            $mevcut_dogru_mu = $mevcut_cevap_detay['dogru_mu'];
-                            $dogru_secenek = $answer_key_map[$i] ?? 'N/A';
-                            $durum_metni = '';
-                            $durum_class = '';
-                            if ($mevcut_dogru_mu === 1) {
-                                $durum_metni = 'Doğru'; $durum_class = 'text-success';
-                            } elseif ($mevcut_dogru_mu === 0) {
-                                $durum_metni = 'Yanlış'; $durum_class = 'text-danger';
-                            } else {
-                                $durum_metni = 'Boş'; $durum_class = 'text-muted';
-                            }
+<div class="alert alert-warning border-0 shadow-sm rounded-3 py-2 small mb-4">
+    <i class="fas fa-exclamation-triangle me-2"></i> <strong>Dikkat:</strong> Buradan yapılan değişiklikler öğrencinin sonucunu anlık olarak etkiler.
+</div>
+
+<form action="edit_user_answers.php?katilim_id=<?php echo $katilim_id; ?>" method="POST" class="fade-in">
+    <input type="hidden" name="csrf_token" value="<?php echo generate_admin_csrf_token(); ?>">
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">
+                        <tr>
+                            <th class="ps-4 py-3">Soru</th>
+                            <th class="text-center py-3">Doğru Cevap</th>
+                            <th class="text-center py-3">Öğrenci İşareti</th>
+                            <th class="text-center py-3">Durum</th>
+                            <th class="pe-4 py-3" style="width: 200px;">Yeni İşaret</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php for($i=1; $i<=$info['soru_sayisi']; $i++): 
+                            $curr_ans = $user_answers[$i]['verilen_cevap'] ?? '';
+                            $correct = $answer_key[$i] ?? '';
+                            $status_class = ($curr_ans === $correct) ? 'text-success' : (empty($curr_ans) ? 'text-muted' : 'text-danger');
                         ?>
                         <tr>
-                            <td><?php echo $i; ?></td>
-                            <td><?php echo escape_html($mevcut_verilen ?: 'Boş'); ?></td>
-                            <td><?php echo escape_html($dogru_secenek); ?></td>
-                            <td class="<?php echo $durum_class; ?> fw-bold"><?php echo $durum_metni; ?></td>
-                            <td>
-                                <select name="cevaplar[<?php echo $i; ?>]" class="input-admin form-select form-select-sm" style="min-width: 80px;">
-                                    <?php foreach ($options as $opt): ?>
-                                        <option value="<?php echo $opt; ?>" <?php echo ($mevcut_verilen === $opt && $opt !== '') ? 'selected' : ''; ?>>
-                                            <?php echo $opt ?: 'Boş Bırak'; ?>
-                                        </option>
+                            <td class="ps-4 fw-bold text-secondary">Soru <?php echo $i; ?></td>
+                            <td class="text-center"><span class="badge bg-success-subtle text-success fs-6 px-3"><?php echo $correct; ?></span></td>
+                            <td class="text-center fw-bold <?php echo $status_class; ?>"><?php echo $curr_ans ?: 'BOŞ'; ?></td>
+                            <td class="text-center">
+                                <?php if($curr_ans === $correct): ?>
+                                    <i class="fas fa-check-circle text-success"></i>
+                                <?php elseif(empty($curr_ans)): ?>
+                                    <i class="fas fa-minus-circle text-muted"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-times-circle text-danger"></i>
+                                <?php endif; ?>
+                            </td>
+                            <td class="pe-4 text-end">
+                                <select name="answers[<?php echo $i; ?>]" class="form-select form-select-sm input-theme fw-bold">
+                                    <option value="">BOŞ</option>
+                                    <?php foreach(['A','B','C','D','E'] as $opt): ?>
+                                        <option value="<?php echo $opt; ?>" <?php echo ($curr_ans === $opt) ? 'selected' : ''; ?>><?php echo $opt; ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </td>
                         </tr>
-                    <?php endfor; ?>
-                </tbody>
-            </table>
+                        <?php endfor; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <button type="submit" class="btn-admin green mt-3">
-             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill me-1" viewBox="0 0 16 16">
-                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-            </svg>
-            Cevapları Güncelle ve Puanları Yeniden Hesapla
-        </button>
-    </form>
-<?php else: ?>
-    <p class="message-box error">Seçilen katılım bilgileri yüklenemedi.</p>
-<?php endif; ?>
+        <div class="card-footer bg-white p-4 border-0 text-center">
+            <button type="submit" class="btn btn-theme-primary btn-lg px-5 shadow">
+                <i class="fas fa-save me-2"></i> Değişiklikleri Uygula
+            </button>
+        </div>
+    </div>
+</form>
 
-<?php
-include_once __DIR__ . '/../templates/admin_footer.php';
-?>
+<?php include_once __DIR__ . '/../templates/admin_footer.php'; ?>

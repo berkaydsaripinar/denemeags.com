@@ -1,99 +1,87 @@
 <?php
-// yazar/manage_products.php
-require_once __DIR__ . '/../config.php';
-require_once __DIR__ . '/../includes/db_connect.php';
-require_once __DIR__ . '/../includes/functions.php';
+// yazar/manage_products.php - Temiz Liste Görünümü
+$page_title = "Yayınlarım";
+require_once __DIR__ . '/includes/author_header.php';
 
-if (!isset($_SESSION['yazar_id'])) {
-    header("Location: login.php");
-    exit;
-}
-
-$yazar_id = $_SESSION['yazar_id'];
-
-// Yayınları Listele
 try {
-    $stmt = $pdo->prepare("SELECT * FROM denemeler WHERE yazar_id = ? ORDER BY id DESC");
-    $stmt->execute([$yazar_id]);
+    $stmt = $pdo->prepare("
+        SELECT * FROM denemeler 
+        WHERE yazar_id = ? 
+        ORDER BY id DESC
+    ");
+    $stmt->execute([$yid]);
     $products = $stmt->fetchAll();
 } catch (PDOException $e) { $products = []; }
-
 ?>
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <title>Yayınlarım | DenemeAGS Yazar</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root { --primary: #1F3C88; --accent: #F57C00; }
-        body { background: #f8f9fa; font-family: 'Open Sans', sans-serif; }
-        .sidebar { background: var(--primary); height: 100vh; color: white; position: fixed; width: 240px; }
-        .content { margin-left: 240px; padding: 40px; }
-        .nav-link { color: rgba(255,255,255,0.7); padding: 12px 25px; transition: 0.3s; }
-        .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.1); border-left: 4px solid var(--accent); }
-        .product-card { border: none; border-radius: 12px; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .product-card:hover { transform: translateY(-5px); }
-    </style>
-</head>
-<body>
-    <div class="sidebar">
-        <div class="p-4 text-center border-bottom border-white border-opacity-10 mb-3">
-            <h4 class="fw-bold mb-0">DENEME<span class="text-warning">AGS</span></h4>
-            <small class="opacity-50 text-uppercase">Yazar Paneli</small>
-        </div>
-        <nav class="nav flex-column">
-            <a class="nav-link" href="dashboard.php"><i class="fas fa-chart-line me-2"></i> Genel Bakış</a>
-            <a class="nav-link active" href="manage_products.php"><i class="fas fa-book me-2"></i> Yayınlarım</a>
-            <a class="nav-link" href="earnings.php"><i class="fas fa-wallet me-2"></i> Ödemeler</a>
-            <a class="nav-link" href="profile.php"><i class="fas fa-user-circle me-2"></i> Profilim</a>
-            <a class="nav-link text-danger mt-5" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> Çıkış Yap</a>
-        </nav>
+
+<div class="d-flex justify-content-between align-items-center mb-5">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">Yayın Kütüphaneniz</h2>
+        <p class="text-muted mb-0">Yüklediğiniz tüm dijital içeriklerin durumunu buradan izleyin.</p>
     </div>
+    <a href="add_product.php" class="btn-coral text-decoration-none shadow">
+        <i class="fas fa-plus me-2"></i>Yeni Yayın Yükle
+    </a>
+</div>
 
-    <div class="content">
-        <div class="d-flex justify-content-between align-items-center mb-5">
-            <div>
-                <h3 class="fw-bold mb-0">Yayınlarım</h3>
-                <p class="text-muted">Yüklediğiniz tüm deneme ve kaynakları buradan yönetin.</p>
-            </div>
-            <a href="add_product.php" class="btn btn-warning fw-bold"><i class="fas fa-plus me-2"></i> Yeni Yayın Ekle</a>
-        </div>
-
-        <div class="row g-4">
-            <?php if(empty($products)): ?>
-                <div class="col-12 text-center py-5">
-                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-                    <p class="text-muted">Henüz bir yayın yüklemediniz.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach($products as $p): ?>
-                <div class="col-md-6 col-lg-4">
-                    <div class="card product-card h-100">
-                        <div class="card-body p-4 d-flex flex-column">
-                            <div class="d-flex justify-content-between align-items-start mb-3">
-                                <span class="badge <?php echo $p['aktif_mi'] ? 'bg-success' : 'bg-warning text-dark'; ?> rounded-pill px-3">
-                                    <?php echo $p['aktif_mi'] ? 'Yayında' : 'Onay Bekliyor'; ?>
-                                </span>
-                                <span class="text-muted small">ID: #<?php echo $p['id']; ?></span>
-                            </div>
-                            <h5 class="fw-bold mb-2"><?php echo escape_html($p['deneme_adi']); ?></h5>
-                            <p class="text-muted small flex-grow-1"><?php echo substr(escape_html($p['kisa_aciklama']), 0, 100); ?>...</p>
-                            <hr>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="small fw-bold text-primary"><?php echo number_format($p['fiyat'], 2); ?> ₺</div>
-                                <div class="btn-group">
-                                    <a href="edit_product.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
-                                    <a href="#" class="btn btn-sm btn-outline-info" title="İstatistikler"><i class="fas fa-chart-bar"></i></a>
+<div class="card card-custom overflow-hidden">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4 py-3">Ürün Bilgisi</th>
+                        <th>Tür</th>
+                        <th>Fiyat</th>
+                        <th>Durum</th>
+                        <th class="pe-4 text-end">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if(empty($products)): ?>
+                        <tr><td colspan="5" class="text-center py-5 text-muted">Henüz yüklenmiş bir yayınınız bulunmuyor.</td></tr>
+                    <?php else: ?>
+                        <?php foreach($products as $p): ?>
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded-3 p-2 me-3">
+                                        <i class="fas <?php echo ($p['tur'] == 'deneme') ? 'fa-file-alt' : 'fa-book'; ?> text-primary fa-lg"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark small"><?php echo escape_html($p['deneme_adi']); ?></div>
+                                        <div class="text-muted" style="font-size: 0.65rem;">Eklenme: <?php echo date('d.m.Y', strtotime($p['olusturulma_tarihi'])); ?></div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="small text-muted text-uppercase fw-bold"><?php echo $p['tur']; ?></span>
+                            </td>
+                            <td class="fw-bold text-primary"><?php echo number_format($p['fiyat'], 2); ?> ₺</td>
+                            <td>
+                                <?php if($p['aktif_mi']): ?>
+                                    <span class="badge bg-success-subtle text-success rounded-pill px-3">Yayında</span>
+                                <?php else: ?>
+                                    <span class="badge bg-warning-subtle text-warning rounded-pill px-3">Onay Bekliyor</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="pe-4 text-end">
+                                <div class="btn-group shadow-sm rounded-3">
+                                    <a href="edit_product.php?id=<?php echo $p['id']; ?>" class="btn btn-sm btn-white border" title="Düzenle">
+                                        <i class="fas fa-edit text-primary"></i>
+                                    </a>
+                                    <a href="analytics.php?pid=<?php echo $p['id']; ?>" class="btn btn-sm btn-white border" title="Analiz">
+                                        <i class="fas fa-chart-bar text-info"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+<?php require_once __DIR__ . '/includes/author_footer.php'; ?>

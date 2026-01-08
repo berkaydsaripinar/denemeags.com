@@ -59,6 +59,55 @@ function requireLogin() {
         redirect('login.php');
     }
 }
+function send_custom_mail($to, $subject, $content_title, $content_body, $button_text = '', $button_url = '') {
+    $site_name = "Deneme AGS";
+    $site_url = "https://denemeags.com";
+    $logo_url = $site_url . "/assets/img/logo.png"; // Varsa logonuzun tam yolu
+
+    // HTML E-posta Şablonu (Inline CSS kullanılması zorunludur)
+    $message = "
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f9; color: #333; }
+            .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+            .header { background-color: #1e293b; padding: 30px; text-align: center; color: #ffffff; }
+            .content { padding: 40px; line-height: 1.6; }
+            .footer { background-color: #f8fafc; padding: 20px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+            .btn { display: inline-block; padding: 12px 25px; background-color: #ef4444; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; }
+            h1 { margin-top: 0; color: #1e293b; font-size: 22px; }
+            p { margin-bottom: 15px; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='header'>
+                <h2 style='margin:0;'>$site_name</h2>
+            </div>
+            <div class='content'>
+                <h1>$content_title</h1>
+                <div>$content_body</div>
+                " . ($button_url ? "<a href='$button_url' class='btn'>$button_text</a>" : "") . "
+            </div>
+            <div class='footer'>
+                &copy; " . date('Y') . " $site_name. Tüm hakları saklıdır.<br>
+                Bu e-posta otomatik olarak gönderilmiştir.
+            </div>
+        </div>
+    </body>
+    </html>";
+
+    // Mail Başlıkları (HTML olarak gitmesini sağlayan kritik kısım)
+    $headers = "MIME-Version: 1.0" . "\r\n";
+    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+    $headers .= "From: $site_name <noreply@denemeags.com>" . "\r\n";
+    $headers .= "Reply-To: support@denemeags.com" . "\r\n";
+    $headers .= "X-Mailer: PHP/" . phpversion();
+
+    return mail($to, $subject, $message, $headers);
+}
 
 // --- FLASH MESAJ SİSTEMİ (DÜZELTİLEN KISIM) ---
 

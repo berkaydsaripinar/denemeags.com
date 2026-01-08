@@ -130,6 +130,9 @@ include_once __DIR__ . '/../templates/admin_header.php';
                         <a href="generate_codes.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Toplu Kod Üret</a>
                         <a href="manage_duyurular.php" class="btn btn-light py-2 border text-start"><i class="fas fa-bullhorn me-2"></i> Duyuru Yayınla</a>
                         <a href="webhook_logs.php" class="btn btn-light py-2 border text-start"><i class="fas fa-bullhorn me-2"></i> Shopier Logları</a>
+                        <a href="product_stats.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Kod İstatistik</a>
+
+                        
                         
                     </div>
                 </div>

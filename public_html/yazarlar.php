@@ -131,6 +131,37 @@ require_once __DIR__ . '/includes/functions.php';
         }
         .sec-card:hover { transform: translateY(-5px); }
         .sec-icon { font-size: 2.5rem; color: var(--primary); margin-bottom: 20px; }
+        .feature-card {
+            background: #ffffff;
+            padding: 28px;
+            border-radius: 16px;
+            border: 1px solid rgba(31, 60, 136, 0.1);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+            height: 100%;
+        }
+        .feature-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(31, 60, 136, 0.08);
+            color: var(--primary);
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+        }
+        .feature-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary);
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+        }
 
         /* COMPARISON TABLE */
         .comparison-section { background-color: #f4f6f8; padding: 100px 0; }
@@ -300,6 +331,60 @@ require_once __DIR__ . '/includes/functions.php';
                         <div class="sec-icon"><i class="fas fa-check-circle"></i></div>
                         <h5>Ödeme Tamamlandı</h5>
                         <p class="text-muted small mb-0">Yeni ödeme tamamlandı ekranı ile kullanıcıya net yönlendirme ve güven verir.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5" style="background: #f4f6fb;">
+        <div class="container py-5">
+            <div class="text-center mb-5">
+                <span class="feature-badge"><i class="fas fa-bolt"></i> YENİ</span>
+                <h2 class="fw-bold mt-3">Yeni Nesil Ödeme ve Teslimat Deneyimi</h2>
+                <p class="text-muted">Shopier entegrasyonumuz yenilendi. Ödeme sonrası ürün otomatik kütüphaneye tanımlanır ve satış raporları panelinize anında düşer.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-credit-card"></i></div>
+                        <h5 class="fw-bold">Yeni Sekmede Ödeme</h5>
+                        <p class="text-muted small">Kullanıcılar Shopier sayfasını ayrı sekmede açar, ödeme akışı bölünmeden tamamlanır.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-user-check"></i></div>
+                        <h5 class="fw-bold">Otomatik Kütüphane Tanımlama</h5>
+                        <p class="text-muted small">Ödeme onayı gelir gelmez ürün, kullanıcının kütüphanesine otomatik atanır.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h5 class="fw-bold">Anlık Satış Raporlama</h5>
+                        <p class="text-muted small">Yazar panelinde satışlar, komisyonlar ve kazançlar gerçek zamanlı güncellenir.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-envelope-open-text"></i></div>
+                        <h5 class="fw-bold">Otomatik Bilgilendirme</h5>
+                        <p class="text-muted small">Satın alan kullanıcıya erişim kodu ve giriş bilgileri otomatik e-posta ile iletilir.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-shield-check"></i></div>
+                        <h5 class="fw-bold">Güçlü Eşleştirme</h5>
+                        <p class="text-muted small">Yeni eşleştirme yöntemi ile her ödeme doğru ürünle eşleştirilir, kayıp satış olmaz.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-gift"></i></div>
+                        <h5 class="fw-bold">Ödeme Tamamlandı Ekranı</h5>
+                        <p class="text-muted small">Kullanıcılar ödeme sonrası net bir durum ekranı görür ve kütüphaneye yönlendirilir.</p>
                     </div>
                 </div>
             </div>

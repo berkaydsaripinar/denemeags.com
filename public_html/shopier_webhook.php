@@ -39,10 +39,19 @@ if (!$data) {
 
 $siparis_id = $data['orderid'];
 $email      = $data['email'];
-$price      = $data['price'];
+$price_raw  = $data['price'];
+$price      = (float) str_replace(',', '.', $price_raw);
 $is_test    = $data['istest'] ?? 0;
 
 debug_log("Sipariş ID: $siparis_id | Email: $email | Tutar: $price | Test Modu: $is_test");
+
+$parsed_deneme_id = null;
+$parsed_user_id = null;
+if (preg_match('/^AGS-(\d+)-(\d+)-/', $siparis_id, $matches)) {
+    $parsed_deneme_id = (int) $matches[1];
+    $parsed_user_id = (int) $matches[2];
+    debug_log("Sipariş ID çözümleme: deneme_id=$parsed_deneme_id, kullanici_id=$parsed_user_id");
+}
 
 // 2. Test Modu Kontrolü
 if ($is_test == 1) {
@@ -52,6 +61,14 @@ if ($is_test == 1) {
 }
 
 try {
+    $stmt_existing = $pdo->prepare("SELECT id FROM satis_loglari WHERE siparis_id = ?");
+    $stmt_existing->execute([$siparis_id]);
+    if ($stmt_existing->fetch()) {
+        debug_log("UYARI: Bu sipariş daha önce işlendi. Sipariş ID: $siparis_id");
+        echo "success";
+        exit;
+    }
+
     $pdo->beginTransaction();
 
     // 3. Kullanıcı İşlemleri
@@ -79,30 +96,82 @@ try {
     }
 
     // 4. Ürün Eşleştirme
-    $gelen_shopier_id = $data['productid']; 
-    debug_log("Shopier'den Gelen Ürün ID: " . $gelen_shopier_id);
+    $gelen_shopier_id = $data['productid'] ?? null; 
+    debug_log("Shopier'den Gelen Ürün ID: " . ($gelen_shopier_id ?? 'Yok'));
 
-    $stmt_deneme = $pdo->prepare("SELECT id, deneme_adi, yazar_id FROM denemeler WHERE shopier_product_id = ?");
-    $stmt_deneme->execute([$gelen_shopier_id]);
-    $deneme = $stmt_deneme->fetch();
+    $deneme = null;
+    if (!empty($gelen_shopier_id)) {
+        $stmt_deneme = $pdo->prepare("
+            SELECT d.id, d.deneme_adi, d.yazar_id, y.komisyon_orani
+            FROM denemeler d
+            LEFT JOIN yazarlar y ON d.yazar_id = y.id
+            WHERE d.shopier_product_id = ?
+        ");
+        $stmt_deneme->execute([$gelen_shopier_id]);
+        $deneme = $stmt_deneme->fetch();
+    }
+
+    if (!$deneme && $parsed_deneme_id) {
+        $stmt_deneme = $pdo->prepare("
+            SELECT d.id, d.deneme_adi, d.yazar_id, y.komisyon_orani
+            FROM denemeler d
+            LEFT JOIN yazarlar y ON d.yazar_id = y.id
+            WHERE d.id = ?
+        ");
+        $stmt_deneme->execute([$parsed_deneme_id]);
+        $deneme = $stmt_deneme->fetch();
+        debug_log("Sipariş ID üzerinden ürün eşleştirme denendi. Sonuç: " . ($deneme ? 'Bulundu' : 'Bulunamadı'));
+    }
 
     if ($deneme) {
         debug_log("EŞLEŞME BAŞARILI! Veritabanındaki Ürün: " . $deneme['deneme_adi'] . " (ID: " . $deneme['id'] . ")");
         
-        // Kod üretme ve kaydetme
-        $kod = strtoupper(bin2hex(random_bytes(4)));
-        $stmt_code = $pdo->prepare("INSERT INTO erisim_kodlari (kod, kod_turu, urun_id, deneme_id, kullanici_id, kullanilma_tarihi, cok_kullanimlik) VALUES (?, 'urun', ?, ?, ?, NOW(), 0)");
-        $stmt_code->execute([$kod, $deneme['id'], $deneme['id'], $user_id]);
-        
-        $erisim_kodu_id = $pdo->lastInsertId();
+        $stmt_has_access = $pdo->prepare("SELECT id FROM kullanici_erisimleri WHERE kullanici_id = ? AND deneme_id = ?");
+        $stmt_has_access->execute([$user_id, $deneme['id']]);
 
-        $stmt_acc = $pdo->prepare("INSERT IGNORE INTO kullanici_erisimleri (kullanici_id, deneme_id, erisim_kodu_id, erisim_tarihi) VALUES (?, ?, ?, NOW())");
-        $stmt_acc->execute([$user_id, $deneme['id'], $erisim_kodu_id]);
+        if (!$stmt_has_access->fetch()) {
+            // Kod üretme ve kaydetme
+            $kod = strtoupper(bin2hex(random_bytes(4)));
+            $stmt_code = $pdo->prepare("INSERT INTO erisim_kodlari (kod, kod_turu, urun_id, deneme_id, kullanici_id, kullanilma_tarihi, cok_kullanimlik) VALUES (?, 'urun', ?, ?, ?, NOW(), 0)");
+            $stmt_code->execute([$kod, $deneme['id'], $deneme['id'], $user_id]);
+            
+            $erisim_kodu_id = $pdo->lastInsertId();
+
+            $stmt_acc = $pdo->prepare("INSERT IGNORE INTO kullanici_erisimleri (kullanici_id, deneme_id, erisim_kodu_id, erisim_tarihi) VALUES (?, ?, ?, NOW())");
+            $stmt_acc->execute([$user_id, $deneme['id'], $erisim_kodu_id]);
+        } else {
+            $kod = 'MEVCUT';
+            debug_log("Bilgi: Kullanıcının erişimi zaten mevcut. Kullanıcı ID: $user_id, Deneme ID: " . $deneme['id']);
+        }
         
-        // Finansal Log
-        // Yazar payını hesaplamak isterseniz burayı geliştirebilirsiniz, şimdilik 0 geçiyoruz.
-        $stmt_log = $pdo->prepare("INSERT INTO satis_loglari (deneme_id, yazar_id, kullanici_id, siparis_id, tutar_brut, komisyon_yazar_orani, yazar_payi, platform_payi) VALUES (?, ?, ?, ?, ?, 0, 0, ?)");
-        $stmt_log->execute([$deneme['id'], $deneme['yazar_id'], $user_id, $siparis_id, $price, $price]);
+        // Finansal Log - Yazar payı otomatik hesaplanır
+        $komisyon_orani = isset($deneme['komisyon_orani']) ? (float) $deneme['komisyon_orani'] : 0.0;
+        $yazar_payi = round($price * ($komisyon_orani / 100), 2);
+        $platform_payi = round($price - $yazar_payi, 2);
+
+        $stmt_log = $pdo->prepare("
+            INSERT INTO satis_loglari (
+                deneme_id,
+                yazar_id,
+                kullanici_id,
+                siparis_id,
+                tutar_brut,
+                komisyon_yazar_orani,
+                yazar_payi,
+                platform_payi,
+                yazar_odeme_durumu
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'beklemede')
+        ");
+        $stmt_log->execute([
+            $deneme['id'],
+            (int) ($deneme['yazar_id'] ?? 0),
+            $user_id,
+            $siparis_id,
+            $price,
+            $komisyon_orani,
+            $yazar_payi,
+            $platform_payi
+        ]);
 
         debug_log("Veritabanı kayıtları tamamlandı. Kod: $kod");
 

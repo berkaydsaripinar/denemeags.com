@@ -107,12 +107,13 @@ include_once __DIR__ . '/../templates/admin_header.php';
                         <th class="text-center">Brüt Tutar</th>
                         <th class="text-center">Yazar Payı</th>
                         <th class="text-center">Platform Payı</th>
+                        <th class="text-center">Hakediş</th>
                         <th class="pe-4 text-end">Tarih</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($satislar)): ?>
-                        <tr><td colspan="7" class="py-5 text-center text-muted">Satış kaydı bulunamadı.</td></tr>
+                        <tr><td colspan="8" class="py-5 text-center text-muted">Satış kaydı bulunamadı.</td></tr>
                     <?php else: ?>
                         <?php foreach($satislar as $s): ?>
                         <tr>
@@ -133,6 +134,20 @@ include_once __DIR__ . '/../templates/admin_header.php';
                                 <div class="text-muted" style="font-size: 0.6rem;">(%<?php echo $s['komisyon_yazar_orani']; ?>)</div>
                             </td>
                             <td class="text-center fw-bold text-primary"><?php echo number_format($s['platform_payi'], 2); ?> ₺</td>
+                            <td class="text-center">
+                                <?php $odeme_durumu = $s['yazar_odeme_durumu'] ?? 'beklemede'; ?>
+                                <?php if ($odeme_durumu === 'odendi'): ?>
+                                    <span class="badge bg-success">Ödendi</span>
+                                    <div class="text-muted" style="font-size: 0.7rem;">
+                                        <?php echo $s['yazar_odeme_tarihi'] ? date('d.m.Y', strtotime($s['yazar_odeme_tarihi'])) : ''; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="badge bg-warning text-dark">Beklemede</span>
+                                    <div class="text-muted" style="font-size: 0.7rem;">
+                                        <?php echo date('d.m.Y', strtotime($s['tarih'] . ' +14 days')); ?> itibarıyla ödenebilir
+                                    </div>
+                                <?php endif; ?>
+                            </td>
                             <td class="pe-4 text-end small text-muted">
                                 <?php echo date('d.m.Y', strtotime($s['tarih'])); ?><br>
                                 <?php echo date('H:i', strtotime($s['tarih'])); ?>

@@ -49,23 +49,28 @@ include_once __DIR__ . '/templates/header.php';
         border-radius: 999px;
         padding: 8px 20px;
         font-weight: 600;
+        transition: all 0.3s ease;
     }
     .product-card-modern {
         border: none;
         border-radius: 22px;
         overflow: hidden;
-        box-shadow: 0 18px 30px rgba(0,0,0,0.08);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         background: #fff;
+        display: flex;
+        flex-direction: column;
         height: 100%;
+        min-height: 480px; /* Kartın çok küçülüp butonları yutmasını engelliyoruz */
     }
     .product-card-modern:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 24px 40px rgba(0,0,0,0.12);
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.12);
     }
     .product-cover {
         position: relative;
-        height: 220px;
+        height: 200px;
+        min-height: 200px;
         overflow: hidden;
     }
     .product-cover img {
@@ -75,44 +80,51 @@ include_once __DIR__ . '/templates/header.php';
     }
     .product-badge {
         position: absolute;
-        top: 16px;
-        left: 16px;
-        background: rgba(31, 60, 136, 0.92);
+        top: 12px;
+        left: 12px;
+        background: rgba(31, 60, 136, 0.9);
         color: #fff;
-        padding: 6px 14px;
+        padding: 4px 12px;
         border-radius: 999px;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         font-weight: 700;
-        letter-spacing: 0.5px;
+        z-index: 2;
+    }
+    .product-content {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
     }
     .product-price {
-        font-size: 1.1rem;
-        font-weight: 700;
+        font-size: 1.25rem;
+        font-weight: 800;
         color: #1F3C88;
     }
     .product-meta {
         font-size: 0.85rem;
         color: #6c757d;
     }
-    .product-cta {
-        border-radius: 999px;
-        padding: 10px 18px;
-        font-weight: 700;
-    }
     .product-actions {
-        border-top: 1px solid rgba(15, 30, 69, 0.08);
-        padding-top: 16px;
+        margin-top: auto; /* Butonları en alta sabitler */
+        padding-top: 20px;
+        border-top: 1px solid rgba(0,0,0,0.05);
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
         align-items: center;
         justify-content: space-between;
+        gap: 10px;
     }
-    .product-actions .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+    .product-cta {
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-weight: 700;
+        font-size: 0.9rem;
         white-space: nowrap;
+        transition: all 0.2s;
+    }
+    .btn-outline-primary.product-cta:hover {
+        background-color: #1F3C88;
+        color: #fff;
     }
 </style>
 
@@ -121,8 +133,8 @@ include_once __DIR__ . '/templates/header.php';
         <div class="row align-items-center g-4">
             <div class="col-lg-7">
                 <span class="text-uppercase text-primary fw-bold small">DenemeAGS Mağaza</span>
-                <h1 class="fw-bold display-6 mt-2">Deneme ve soru bankalarını keşfedin</h1>
-                <p class="text-muted mb-4">Yeni tasarım mağazamızda en güncel içerikleri, filtreler ve hızlı arama ile kolayca bulun.</p>
+                <h1 class="fw-bold display-6 mt-2">Eğitim materyallerini keşfet</h1>
+                <p class="text-muted mb-4">Butonlar dahil her şey yerli yerinde! Aramaya hemen başla.</p>
                 <form class="store-search d-flex align-items-center gap-2" method="get" action="store.php">
                     <?php if ($kat): ?>
                         <input type="hidden" name="kategori" value="<?php echo escape_html($kat); ?>">
@@ -134,11 +146,11 @@ include_once __DIR__ . '/templates/header.php';
             </div>
             <div class="col-lg-5 text-lg-end">
                 <div class="d-inline-flex flex-column gap-2 align-items-lg-end">
-                    <div class="fw-semibold text-primary">Hızlı Filtreler</div>
+                    <div class="fw-semibold text-primary">Kategoriler</div>
                     <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
-                        <a href="store.php<?php echo $arama ? '?s=' . urlencode($arama) : ''; ?>" class="btn <?php echo !$kat ? 'btn-primary' : 'btn-outline-primary'; ?> filter-pill">Tümü</a>
+                        <a href="store.php<?php echo $arama ? '?s=' . urlencode($arama) : ''; ?>" class="btn <?php echo !$kat ? 'btn-primary' : 'btn-outline-primary'; ?> filter-pill text-sm">Tümü</a>
                         <?php foreach($kategoriler as $k): ?>
-                            <a href="store.php?kategori=<?php echo urlencode($k); ?><?php echo $arama ? '&s=' . urlencode($arama) : ''; ?>" class="btn <?php echo $kat == $k ? 'btn-primary' : 'btn-outline-primary'; ?> filter-pill"><?php echo escape_html($k); ?></a>
+                            <a href="store.php?kategori=<?php echo urlencode($k); ?><?php echo $arama ? '&s=' . urlencode($arama) : ''; ?>" class="btn <?php echo $kat == $k ? 'btn-primary' : 'btn-outline-primary'; ?> filter-pill text-sm"><?php echo escape_html($k); ?></a>
                         <?php endforeach; ?>
                     </div>
                 </div>
@@ -147,10 +159,10 @@ include_once __DIR__ . '/templates/header.php';
     </div>
 
     <?php if (empty($urunler)): ?>
-        <div class="alert alert-light text-center py-5 shadow-sm border-0">
-            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-            <h4 class="h5">Şu an için eşleşen ürün yok.</h4>
-            <p class="text-muted small mb-0">Filtreleri temizleyip tekrar deneyebilir veya ana sayfaya dönebilirsiniz.</p>
+        <div class="alert alert-light text-center py-5 shadow-sm border-0 rounded-4">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4 class="h5">Aradığınız şeyi bulamadık (ama en azından arama butonu çalışıyor).</h4>
+            <p class="text-muted small mb-0">Başka anahtar kelimelerle şansınızı deneyin.</p>
         </div>
     <?php else: ?>
         <div class="row g-4">
@@ -159,27 +171,31 @@ include_once __DIR__ . '/templates/header.php';
                 <div class="product-card-modern">
                     <div class="product-cover">
                         <img src="<?php echo !empty($u['resim_url']) ? $u['resim_url'] : 'https://placehold.co/600x400/E0E7FF/4A69FF?text=Yayın+Kapağı'; ?>" alt="<?php echo escape_html($u['deneme_adi']); ?>">
-                        <span class="product-badge"><?php echo escape_html($u['tur'] ?? 'DENEME'); ?></span>
+                        <span class="product-badge"><?php echo strtoupper(escape_html($u['tur'] ?? 'DENEME')); ?></span>
                     </div>
-                    <div class="p-4 d-flex flex-column h-100">
-                        <h5 class="fw-bold mb-2"><?php echo escape_html($u['deneme_adi']); ?></h5>
+                    <div class="product-content">
+                        <h5 class="fw-bold mb-2 text-dark"><?php echo escape_html($u['deneme_adi']); ?></h5>
+                        
                         <div class="product-meta mb-3">
-                            <i class="fas fa-pen-nib me-1"></i>
+                            <i class="fas fa-user-edit me-1 text-primary"></i>
                             <a href="yazar.php?id=<?php echo $u['yazar_id']; ?>" class="text-decoration-none text-muted fw-semibold">
                                 <?php echo escape_html($u['yazar_adi'] ?: 'Platform'); ?>
                             </a>
                         </div>
-                        <p class="text-muted small flex-grow-1 mb-4">
+
+                        <p class="text-muted small mb-4">
                             <?php
                                 $desc = strip_tags($u['kisa_aciklama']);
-                                echo (mb_strlen($desc) > 120) ? mb_substr($desc, 0, 117) . '...' : $desc;
+                                echo (mb_strlen($desc) > 100) ? mb_substr($desc, 0, 97) . '...' : $desc;
                             ?>
                         </p>
-                        <div class="product-actions mt-auto">
-                            <span class="product-price"><?php echo number_format($u['fiyat'], 2); ?> ₺</span>
+                        
+                        <!-- Butonların ve Fiyatın Merkezi -->
+                        <div class="product-actions">
+                            <div class="product-price"><?php echo number_format($u['fiyat'], 2); ?> ₺</div>
                             <div class="d-flex gap-2">
                                 <a href="urun.php?id=<?php echo $u['id']; ?>" class="btn btn-outline-primary product-cta">İncele</a>
-                                <a href="checkout.php?id=<?php echo $u['id']; ?>" target="_blank" rel="noopener" class="btn btn-primary product-cta">Satın Al</a>
+                                <a href="checkout.php?id=<?php echo $u['id']; ?>" class="btn btn-primary product-cta">Satın Al</a>
                             </div>
                         </div>
                     </div>

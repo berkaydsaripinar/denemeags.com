@@ -39,7 +39,8 @@ if (!$data) {
 
 $siparis_id = $data['orderid'];
 $email      = $data['email'];
-$price      = $data['price'];
+$price_raw  = $data['price'];
+$price      = (float) str_replace(',', '.', $price_raw);
 $is_test    = $data['istest'] ?? 0;
 
 debug_log("Sipariş ID: $siparis_id | Email: $email | Tutar: $price | Test Modu: $is_test");
@@ -82,7 +83,12 @@ try {
     $gelen_shopier_id = $data['productid']; 
     debug_log("Shopier'den Gelen Ürün ID: " . $gelen_shopier_id);
 
-    $stmt_deneme = $pdo->prepare("SELECT id, deneme_adi, yazar_id FROM denemeler WHERE shopier_product_id = ?");
+    $stmt_deneme = $pdo->prepare("
+        SELECT d.id, d.deneme_adi, d.yazar_id, y.komisyon_orani
+        FROM denemeler d
+        LEFT JOIN yazarlar y ON d.yazar_id = y.id
+        WHERE d.shopier_product_id = ?
+    ");
     $stmt_deneme->execute([$gelen_shopier_id]);
     $deneme = $stmt_deneme->fetch();
 
@@ -99,10 +105,34 @@ try {
         $stmt_acc = $pdo->prepare("INSERT IGNORE INTO kullanici_erisimleri (kullanici_id, deneme_id, erisim_kodu_id, erisim_tarihi) VALUES (?, ?, ?, NOW())");
         $stmt_acc->execute([$user_id, $deneme['id'], $erisim_kodu_id]);
         
-        // Finansal Log
-        // Yazar payını hesaplamak isterseniz burayı geliştirebilirsiniz, şimdilik 0 geçiyoruz.
-        $stmt_log = $pdo->prepare("INSERT INTO satis_loglari (deneme_id, yazar_id, kullanici_id, siparis_id, tutar_brut, komisyon_yazar_orani, yazar_payi, platform_payi) VALUES (?, ?, ?, ?, ?, 0, 0, ?)");
-        $stmt_log->execute([$deneme['id'], $deneme['yazar_id'], $user_id, $siparis_id, $price, $price]);
+        // Finansal Log - Yazar payı otomatik hesaplanır
+        $komisyon_orani = isset($deneme['komisyon_orani']) ? (float) $deneme['komisyon_orani'] : 0.0;
+        $yazar_payi = round($price * ($komisyon_orani / 100), 2);
+        $platform_payi = round($price - $yazar_payi, 2);
+
+        $stmt_log = $pdo->prepare("
+            INSERT INTO satis_loglari (
+                deneme_id,
+                yazar_id,
+                kullanici_id,
+                siparis_id,
+                tutar_brut,
+                komisyon_yazar_orani,
+                yazar_payi,
+                platform_payi,
+                yazar_odeme_durumu
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'beklemede')
+        ");
+        $stmt_log->execute([
+            $deneme['id'],
+            $deneme['yazar_id'],
+            $user_id,
+            $siparis_id,
+            $price,
+            $komisyon_orani,
+            $yazar_payi,
+            $platform_payi
+        ]);
 
         debug_log("Veritabanı kayıtları tamamlandı. Kod: $kod");
 

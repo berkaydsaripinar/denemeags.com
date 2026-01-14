@@ -178,6 +178,9 @@ $is_logged_in = isAdminLoggedIn();
             <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_satislar.php' ? 'active' : ''; ?>">
                 <a href="manage_satislar.php"><i class="fas fa-shopping-cart"></i> Siparişler / Loglar</a>
             </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_yazar_odemeleri.php' ? 'active' : ''; ?>">
+                <a href="manage_yazar_odemeleri.php"><i class="fas fa-hand-holding-usd"></i> Hakediş Ödemeleri</a>
+            </li>
             <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_yazarlar.php' ? 'active' : ''; ?>">
                 <a href="manage_yazarlar.php"><i class="fas fa-user-edit"></i> Yazarlar & Hakediş</a>
             </li>

@@ -80,17 +80,37 @@ try {
     }
 
     // 4. Ürün Eşleştirme
-    $gelen_shopier_id = $data['productid']; 
-    debug_log("Shopier'den Gelen Ürün ID: " . $gelen_shopier_id);
+    $gelen_shopier_id = $data['productid'] ?? null; 
+    debug_log("Shopier'den Gelen Ürün ID: " . ($gelen_shopier_id ?: 'YOK'));
 
-    $stmt_deneme = $pdo->prepare("
-        SELECT d.id, d.deneme_adi, d.yazar_id, y.komisyon_orani
-        FROM denemeler d
-        LEFT JOIN yazarlar y ON d.yazar_id = y.id
-        WHERE d.shopier_product_id = ?
-    ");
-    $stmt_deneme->execute([$gelen_shopier_id]);
-    $deneme = $stmt_deneme->fetch();
+    $deneme = null;
+    if (!empty($gelen_shopier_id)) {
+        $stmt_deneme = $pdo->prepare("
+            SELECT d.id, d.deneme_adi, d.yazar_id, y.komisyon_orani
+            FROM denemeler d
+            LEFT JOIN yazarlar y ON d.yazar_id = y.id
+            WHERE d.shopier_product_id = ?
+        ");
+        $stmt_deneme->execute([$gelen_shopier_id]);
+        $deneme = $stmt_deneme->fetch();
+    }
+
+    if (!$deneme && !empty($siparis_id)) {
+        if (preg_match('/^AGS-(\d+)-/i', $siparis_id, $matches)) {
+            $deneme_id = (int) $matches[1];
+            debug_log("Sipariş ID üzerinden deneme ID çözüldü: " . $deneme_id);
+            $stmt_deneme = $pdo->prepare("
+                SELECT d.id, d.deneme_adi, d.yazar_id, y.komisyon_orani
+                FROM denemeler d
+                LEFT JOIN yazarlar y ON d.yazar_id = y.id
+                WHERE d.id = ?
+            ");
+            $stmt_deneme->execute([$deneme_id]);
+            $deneme = $stmt_deneme->fetch();
+        } else {
+            debug_log("Sipariş ID formatı tanınmadı: " . $siparis_id);
+        }
+    }
 
     if ($deneme) {
         debug_log("EŞLEŞME BAŞARILI! Veritabanındaki Ürün: " . $deneme['deneme_adi'] . " (ID: " . $deneme['id'] . ")");
@@ -238,7 +258,7 @@ try {
         }
 
     } else {
-        debug_log("KRİTİK HATA: Shopier'den gelen '$gelen_shopier_id' numaralı ürün veritabanında bulunamadı! Admin panelinden kontrol edin.");
+        debug_log("KRİTİK HATA: Shopier verileri ürünle eşleşmedi. Shopier ID: " . ($gelen_shopier_id ?: 'YOK') . " | Sipariş ID: " . $siparis_id);
     }
 
     $pdo->commit();

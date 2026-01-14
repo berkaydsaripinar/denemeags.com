@@ -54,7 +54,12 @@ if (!class_exists(Shopier::class)) {
     redirect('urun.php?id=' . $id);
 }
 
-$order_id = 'AGS-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(3)));
+$order_id = sprintf(
+    'AGS-%d-%s-%s',
+    (int) $urun['id'],
+    date('YmdHis'),
+    strtoupper(bin2hex(random_bytes(3)))
+);
 $price = number_format((float) $urun['fiyat'], 2, '.', '');
 
 $shopier = new Shopier(SHOPIER_API_KEY, SHOPIER_API_SECRET);

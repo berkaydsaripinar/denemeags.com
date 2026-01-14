@@ -99,6 +99,21 @@ include_once __DIR__ . '/templates/header.php';
         padding: 10px 18px;
         font-weight: 700;
     }
+    .product-actions {
+        border-top: 1px solid rgba(15, 30, 69, 0.08);
+        padding-top: 16px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .product-actions .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
 </style>
 
 <div class="container py-5">
@@ -160,7 +175,7 @@ include_once __DIR__ . '/templates/header.php';
                                 echo (mb_strlen($desc) > 120) ? mb_substr($desc, 0, 117) . '...' : $desc;
                             ?>
                         </p>
-                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mt-auto">
+                        <div class="product-actions mt-auto">
                             <span class="product-price"><?php echo number_format($u['fiyat'], 2); ?> ₺</span>
                             <div class="d-flex gap-2">
                                 <a href="urun.php?id=<?php echo $u['id']; ?>" class="btn btn-outline-primary product-cta">İncele</a>

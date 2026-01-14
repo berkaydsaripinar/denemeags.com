@@ -1,6 +1,8 @@
 <?php
 $page_title = "Eser Sahipleri İçin - Maksimum Güvenlik";
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/db_connect.php';
+require_once __DIR__ . '/includes/functions.php';
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -26,7 +28,7 @@ require_once __DIR__ . '/config.php';
         
         .navbar-landing { position: absolute; top: 0; left: 0; width: 100%; z-index: 100; padding: 25px 0; }
 
-        /* HERO SECTION - GÜVENLİK ODAKLI */
+        /* HERO SECTION */
         .hero {
             background: radial-gradient(circle at center, #1a2c5a 0%, #000000 100%);
             color: white;
@@ -34,7 +36,6 @@ require_once __DIR__ . '/config.php';
             position: relative;
             overflow: hidden;
         }
-        /* Arka plan siber güvenlik deseni */
         .hero::before {
             content: "";
             position: absolute;
@@ -51,7 +52,7 @@ require_once __DIR__ . '/config.php';
         .btn-cta {
             background-color: var(--accent);
             color: white;
-            padding: 18px 50px;
+            padding: 18px 40px;
             font-size: 1.1rem;
             font-weight: 700;
             border-radius: 4px;
@@ -64,7 +65,23 @@ require_once __DIR__ . '/config.php';
         }
         .btn-cta:hover { background-color: #ff9100; transform: translateY(-2px); color: white; box-shadow: 0 0 40px rgba(245, 124, 0, 0.6); }
 
-        /* SECURITY DEMO (CSS BELGE) */
+        .btn-login {
+            background-color: transparent;
+            color: white;
+            padding: 18px 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 4px;
+            text-decoration: none;
+            border: 2px solid rgba(255,255,255,0.3);
+            transition: all 0.3s;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-login:hover { background-color: white; color: var(--primary-dark); border-color: white; }
+
+        /* SECURITY DEMO */
         .security-demo-wrapper {
             position: relative;
             padding: 20px;
@@ -91,7 +108,7 @@ require_once __DIR__ . '/config.php';
             transform: translate(-50%, -50%) rotate(-45deg);
             font-size: 26px;
             font-weight: 900;
-            color: rgba(220, 53, 69, 0.15); /* Kırmızı Filigran */
+            color: rgba(220, 53, 69, 0.15); 
             white-space: nowrap;
             text-align: center;
             border: 2px dashed rgba(220, 53, 69, 0.2);
@@ -141,11 +158,11 @@ require_once __DIR__ . '/config.php';
         .comp-col-old { flex: 1.5; padding: 20px; text-align: center; color: #6c757d; border-right: 1px solid #eee; border-left: 1px solid #eee; }
         .comp-col-new { flex: 1.5; padding: 20px; text-align: center; color: var(--primary); font-weight: 700; background: rgba(31, 60, 136, 0.03); }
         
-        /* Mobile adjustment for table */
         @media (max-width: 768px) {
             .comp-row { flex-direction: column; text-align: center; }
             .comp-col-feature, .comp-col-old, .comp-col-new { border: none; padding: 10px; }
             .comp-col-feature { background: var(--accent); color: white; justify-content: center; }
+            .hero-title { font-size: 2.5rem; }
         }
 
         /* DASHBOARD BLUR */
@@ -169,7 +186,7 @@ require_once __DIR__ . '/config.php';
                 <i class="fas fa-shield-alt me-2 text-warning"></i><?php echo SITE_NAME; ?>
             </a>
             <div class="ms-auto text-white d-none d-md-block">
-                <small class="opacity-75">Yazar Destek: </small> <strong>denemeags@gmail.com</strong>
+                <a href="yazar/login.php" class="btn btn-sm btn-outline-light px-3 py-2 fw-bold">YAZAR GİRİŞİ</a>
             </div>
         </div>
     </nav>
@@ -185,11 +202,14 @@ require_once __DIR__ . '/config.php';
                     <p class="hero-subtitle">PDF’leriniz Telegram gruplarında ücretsiz dağıtılmasın. <strong>DenemeAGS Dijital İmza Teknolojisi</strong> ile eserlerinizi güvenceye alıyor, sadece hak ettiğiniz kazancı sunuyoruz.</p>
                     
                     <div class="d-flex flex-column flex-sm-row gap-3">
-                        <a href="mailto:denemeags@gmail.com?subject=Yazar%20Basvurusu" class="btn-cta">
+                        <a href="yazar/register.php" class="btn-cta text-center">
                             <i class="fas fa-file-contract me-2"></i> Yayıncı Olun
                         </a>
+                        <a href="yazar/login.php" class="btn-login text-center">
+                            <i class="fas fa-sign-in-alt me-2"></i> Giriş Yapın
+                        </a>
                     </div>
-                    <p class="mt-4 text-white-50 small"><i class="fas fa-check text-success me-1"></i> Ücretsiz Katılım &nbsp;&nbsp; <i class="fas fa-check text-success me-1"></i> Yasal Güvence</p>
+                    <p class="mt-4 text-white-50 small"><i class="fas fa-check text-success me-1"></i> Şeffaf Raporlama &nbsp;&nbsp; <i class="fas fa-check text-success me-1"></i> Yasal Güvence</p>
                 </div>
                 
                 <div class="col-lg-6 mt-5 mt-lg-0">
@@ -224,29 +244,32 @@ require_once __DIR__ . '/config.php';
     <section class="py-5 bg-white">
         <div class="container py-5">
             <div class="text-center mb-5">
-                <h2 class="fw-bold">Neden Paylaşılamaz?</h2>
-                <p class="text-muted">Teknolojimiz, korsan paylaşımı yapan kişiyi anında tespit eder.</p>
+                <h2 class="fw-bold text-primary">Çalışma Modellerimiz</h2>
+                <p class="text-muted">Size en uygun yayıncılık modelini seçerek hemen kazanmaya başlayın.</p>
             </div>
             <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="sec-card text-center">
-                        <div class="sec-icon"><i class="fas fa-user-secret"></i></div>
-                        <h4>Psikolojik Caydırıcılık</h4>
-                        <p class="text-muted">Öğrenci, belgenin tam ortasında kendi T.C. Kimlik Numarasını ve Adını görür. Kendi kimliğini ifşa etmeden dosyayı paylaşması imkansızdır.</p>
+                <div class="col-md-6">
+                    <div class="sec-card shadow-sm">
+                        <div class="sec-icon"><i class="fas fa-user-cog"></i></div>
+                        <h4>Paket-1: Manuel İşleyiş</h4>
+                        <p class="text-muted small">Kendi Shopier hesabınız üzerinden satış yaparsınız. Güvenlik altyapımızı kullanırken operasyonu siz yönetirsiniz.</p>
+                        <ul class="list-unstyled small mt-3">
+                            <li><i class="fas fa-check text-success me-2"></i> Kendi Shopier hesabınızdan tahsilat</li>
+                            <li><i class="fas fa-check text-success me-2"></i> Panelden kendi kodlarınızı üretme</li>
+                            <li><i class="fas fa-check text-success me-2"></i> <strong>Sadece %15</strong> hizmet bedeli</li>
+                        </ul>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="sec-card text-center">
-                        <div class="sec-icon"><i class="fas fa-fingerprint"></i></div>
-                        <h4>Dijital Parmak İzi</h4>
-                        <p class="text-muted">Görünür filigranın yanı sıra, dosyanın kodlarına gizlenmiş şifreli takip kodları bulunur. Ekran görüntüsü alınsa bile kaynak tespit edilir.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="sec-card text-center">
-                        <div class="sec-icon"><i class="fas fa-gavel"></i></div>
-                        <h4>Yasal Kanıt</h4>
-                        <p class="text-muted">İzinsiz paylaşım durumunda, sistemimizdeki log kayıtları ve filigranlı dosya, yasal süreçte %100 delil niteliği taşır.</p>
+                <div class="col-md-6">
+                    <div class="sec-card shadow-sm border-primary">
+                        <div class="sec-icon"><i class="fas fa-robot"></i></div>
+                        <h4>Paket-2: Otomatik (Full Servis)</h4>
+                        <p class="text-muted small">Siz sadece PDF'i gönderin, geri kalan tüm satış, kod dağıtımı ve destek sürecini biz yönetelim.</p>
+                        <ul class="list-unstyled small mt-3">
+                            <li><i class="fas fa-check text-success me-2"></i> Tam otomatik satış ve teslimat</li>
+                            <li><i class="fas fa-check text-success me-2"></i> <strong>Cironun %70'i</strong> yazar hakedişi</li>
+                            <li><i class="fas fa-check text-success me-2"></i> 15 günlük periyotlarla düzenli ödeme</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -270,68 +293,50 @@ require_once __DIR__ . '/config.php';
                         </div>
 
                         <div class="comp-row">
-                            <div class="comp-col-feature"><i class="fas fa-percent me-2 text-muted"></i> Yazar Kazancı (Komisyon)</div>
+                            <div class="comp-col-feature"><i class="fas fa-percent me-2 text-muted"></i> Yazar Kazancı</div>
                             <div class="comp-col-old text-danger">%10 - %15</div>
-                            <div class="comp-col-new text-success">%60 - %90</div>
+                            <div class="comp-col-new text-success">%70 - %85</div>
                         </div>
 
                         <div class="comp-row">
                             <div class="comp-col-feature"><i class="fas fa-shield-alt me-2 text-muted"></i> Korsan Koruması</div>
-                            <div class="comp-col-old">Yok (Fotokopi çekilebilir)</div>
+                            <div class="comp-col-old">Yok (Fotokopi/Paylaşım)</div>
                             <div class="comp-col-new text-success"><i class="fas fa-check-circle me-1"></i> %100 Dijital İmza</div>
                         </div>
 
                         <div class="comp-row">
-                            <div class="comp-col-feature"><i class="fas fa-tools me-2 text-muted"></i> Hata Düzeltme</div>
-                            <div class="comp-col-old">İmkansız (Yeni baskı gerekir)</div>
-                            <div class="comp-col-new text-success"><i class="fas fa-bolt me-1"></i> Anında Güncelleme</div>
+                            <div class="comp-col-feature"><i class="fas fa-bolt me-2 text-muted"></i> Teslimat Hızı</div>
+                            <div class="comp-col-old">Günler süren kargo</div>
+                            <div class="comp-col-new text-success">Anında (1 Dakika)</div>
                         </div>
 
                         <div class="comp-row">
                             <div class="comp-col-feature"><i class="fas fa-wallet me-2 text-muted"></i> Ödeme Süreci</div>
-                            <div class="comp-col-old">Aylar süren vadeler</div>
+                            <div class="comp-col-old">6 aylık uzun vadeler</div>
                             <div class="comp-col-new text-success">Şeffaf ve Düzenli</div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
     </section>
 
     <section class="py-5 bg-white">
-        <div class="container py-5">
-            <div class="row align-items-center">
-                <div class="col-lg-5">
-                    <h3 class="fw-bold text-primary">Size Özel İlgi</h3>
-                    <p class="lead">Yazar Paneli teknolojimizi mükemmelleştiriyoruz. Panel açılana kadar size özel atanan temsilcimiz ile butik hizmet sunuyoruz.</p>
-                    
-                    <div class="d-flex align-items-start mt-4">
-                        <i class="fas fa-envelope-open-text fa-2x text-warning me-3"></i>
-                        <div>
-                            <h5>Düzenli Raporlama</h5>
-                            <p class="text-muted small">Her 2 haftada bir satış adetleriniz, cironuz ve hakediş tablonuz e-posta ile tarafınıza iletilir. Kafanızda soru işareti kalmaz.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-7 mt-4 mt-lg-0">
-                    <div class="blur-wrapper shadow-lg">
-                        <img src="https://themes.pixelstrap.com/cuba/assets/images/dashboard/default/dashboard-1.png" class="blur-img" alt="Panel">
-                        <div class="coming-soon-badge">
-                            <i class="fas fa-rocket me-2"></i> YAZAR PANELİ ÇOK YAKINDA
-                        </div>
-                    </div>
-                </div>
+        <div class="container py-5 text-center">
+            <h2 class="fw-bold mb-4">Geleceğin Yayıncılık Standartlarına Katılın</h2>
+            <p class="lead text-muted mb-5">Hemen başvurunuzu yapın, eserlerinizi saniyeler içinde binlerce öğrenciye ulaştırın.</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="yazar/register.php" class="btn btn-primary btn-lg px-5 shadow-sm">HEMEN KAYIT OLUN</a>
+                <a href="yazar/login.php" class="btn btn-outline-primary btn-lg px-5">GİRİŞ YAPIN</a>
             </div>
         </div>
     </section>
 
     <section class="py-5 text-center bg-dark text-white">
         <div class="container">
-            <h2 class="fw-bold mb-4">Güvenli Yayıncılık Ailesine Katılın</h2>
-            <p class="mb-5 opacity-75">Sadece e-posta atarak süreci başlatabilirsiniz.</p>
-            <a href="mailto:denemeags@gmail.com" class="btn btn-outline-light btn-lg px-5">
-                denemeags@gmail.com
+            <p class="mb-3 opacity-75">Sorularınız için bizimle iletişime geçin:</p>
+            <a href="mailto:denemeags@gmail.com" class="text-white fw-bold text-decoration-none">
+                <i class="fas fa-envelope me-2"></i> denemeags@gmail.com
             </a>
             <div class="mt-5 pt-4 border-top border-secondary">
                 <small>&copy; <?php echo date('Y'); ?> <?php echo SITE_NAME; ?>. Tüm hakları saklıdır.</small>
@@ -339,5 +344,6 @@ require_once __DIR__ . '/config.php';
         </div>
     </section>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

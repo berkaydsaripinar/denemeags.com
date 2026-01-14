@@ -516,3 +516,123 @@
 [2026-01-07 19:19:51] Mail gönderimi başlatılıyor... Alıcı: dygtopal26@hotmail.com
 [2026-01-07 19:19:52] SONUÇ: HTML Mail başarıyla gönderildi.
 [2026-01-07 19:19:52] İşlem başarıyla tamamlandı.
+[2026-01-08 18:09:17] --------------------------------------------------
+[2026-01-08 18:09:17] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-08 18:09:17] Sipariş ID: 438915342 | Email: aslisarikaya088@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-08 18:09:17] Mevcut kullanıcı bulundu. ID: 486
+[2026-01-08 18:09:17] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-08 18:09:17] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-08 18:09:17] Veritabanı kayıtları tamamlandı. Kod: 910413EA
+[2026-01-08 18:09:17] Mail gönderimi başlatılıyor... Alıcı: aslisarikaya088@gmail.com
+[2026-01-08 18:09:18] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-08 18:09:18] İşlem başarıyla tamamlandı.
+[2026-01-09 15:47:44] --------------------------------------------------
+[2026-01-09 15:47:44] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-09 15:47:44] Sipariş ID: 690917477 | Email: gultenpazar99@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-09 15:47:44] Mevcut kullanıcı bulundu. ID: 69
+[2026-01-09 15:47:44] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-09 15:47:44] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-09 15:47:44] Veritabanı kayıtları tamamlandı. Kod: B9E122FA
+[2026-01-09 15:47:44] Mail gönderimi başlatılıyor... Alıcı: gultenpazar99@gmail.com
+[2026-01-09 15:47:45] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-09 15:47:45] İşlem başarıyla tamamlandı.
+[2026-01-09 19:48:01] --------------------------------------------------
+[2026-01-09 19:48:01] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-09 19:48:01] Sipariş ID: 444771150 | Email: tulinpeker89@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-09 19:48:01] Mevcut kullanıcı bulundu. ID: 496
+[2026-01-09 19:48:01] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-09 19:48:01] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-09 19:48:01] Veritabanı kayıtları tamamlandı. Kod: 8B7A9672
+[2026-01-09 19:48:01] Mail gönderimi başlatılıyor... Alıcı: tulinpeker89@gmail.com
+[2026-01-09 19:48:02] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-09 19:48:02] İşlem başarıyla tamamlandı.
+[2026-01-09 20:53:42] --------------------------------------------------
+[2026-01-09 20:53:42] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-09 20:53:42] Sipariş ID: 637662624 | Email: songu.aktas56@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-09 20:53:42] Yeni kullanıcı oluşturuldu (Gül  Aktaş). ID: 524
+[2026-01-09 20:53:42] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-09 20:53:42] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-09 20:53:42] Veritabanı kayıtları tamamlandı. Kod: 479F92F0
+[2026-01-09 20:53:42] Mail gönderimi başlatılıyor... Alıcı: songu.aktas56@gmail.com
+[2026-01-09 20:53:43] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-09 20:53:43] İşlem başarıyla tamamlandı.
+[2026-01-09 21:40:55] --------------------------------------------------
+[2026-01-09 21:40:55] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-09 21:40:55] Sipariş ID: 824075428 | Email: yaseminakseker1@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-09 21:40:55] Mevcut kullanıcı bulundu. ID: 260
+[2026-01-09 21:40:55] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-09 21:40:55] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-09 21:40:55] Veritabanı kayıtları tamamlandı. Kod: D4406205
+[2026-01-09 21:40:55] Mail gönderimi başlatılıyor... Alıcı: yaseminakseker1@gmail.com
+[2026-01-09 21:40:56] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-09 21:40:56] İşlem başarıyla tamamlandı.
+[2026-01-10 00:00:48] --------------------------------------------------
+[2026-01-10 00:00:48] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-10 00:00:48] Sipariş ID: 140497503 | Email: ozlemarslan1623@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-10 00:00:48] Mevcut kullanıcı bulundu. ID: 531
+[2026-01-10 00:00:48] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-10 00:00:48] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-10 00:00:48] Veritabanı kayıtları tamamlandı. Kod: E34A1D53
+[2026-01-10 00:00:48] Mail gönderimi başlatılıyor... Alıcı: ozlemarslan1623@gmail.com
+[2026-01-10 00:00:49] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-10 00:00:49] İşlem başarıyla tamamlandı.
+[2026-01-10 01:57:36] --------------------------------------------------
+[2026-01-10 01:57:36] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-10 01:57:36] Sipariş ID: 125203283 | Email: yalcinzeynep987@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-10 01:57:36] Yeni kullanıcı oluşturuldu (Zeynep Yalçın). ID: 558
+[2026-01-10 01:57:36] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-10 01:57:36] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-10 01:57:36] Veritabanı kayıtları tamamlandı. Kod: 977471C7
+[2026-01-10 01:57:36] Mail gönderimi başlatılıyor... Alıcı: yalcinzeynep987@gmail.com
+[2026-01-10 01:57:37] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-10 01:57:37] İşlem başarıyla tamamlandı.
+[2026-01-10 08:48:43] --------------------------------------------------
+[2026-01-10 08:48:43] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-10 08:48:43] Sipariş ID: 562216378 | Email: ballisevval1@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-10 08:48:43] Yeni kullanıcı oluşturuldu (Şevval Ballı). ID: 564
+[2026-01-10 08:48:43] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-10 08:48:43] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-10 08:48:43] Veritabanı kayıtları tamamlandı. Kod: 7C4A3048
+[2026-01-10 08:48:43] Mail gönderimi başlatılıyor... Alıcı: ballisevval1@gmail.com
+[2026-01-10 08:48:44] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-10 08:48:44] İşlem başarıyla tamamlandı.
+[2026-01-10 14:35:07] --------------------------------------------------
+[2026-01-10 14:35:07] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-10 14:35:07] Sipariş ID: 718544232 | Email: fatmabayram245@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-10 14:35:07] Mevcut kullanıcı bulundu. ID: 577
+[2026-01-10 14:35:07] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-10 14:35:07] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-10 14:35:07] Veritabanı kayıtları tamamlandı. Kod: 6FB81DB2
+[2026-01-10 14:35:07] Mail gönderimi başlatılıyor... Alıcı: fatmabayram245@gmail.com
+[2026-01-10 14:35:08] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-10 14:35:08] İşlem başarıyla tamamlandı.
+[2026-01-13 11:42:59] --------------------------------------------------
+[2026-01-13 11:42:59] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-13 11:42:59] Sipariş ID: 581178551 | Email: sahrablt4@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-13 11:42:59] Mevcut kullanıcı bulundu. ID: 466
+[2026-01-13 11:42:59] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-13 11:42:59] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-13 11:42:59] Veritabanı kayıtları tamamlandı. Kod: B09CFC3A
+[2026-01-13 11:42:59] Mail gönderimi başlatılıyor... Alıcı: sahrablt4@gmail.com
+[2026-01-13 11:43:00] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-13 11:43:00] İşlem başarıyla tamamlandı.
+[2026-01-13 13:33:12] --------------------------------------------------
+[2026-01-13 13:33:12] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-13 13:33:12] Sipariş ID: 185558616 | Email: keserkubranur@gmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-13 13:33:12] Mevcut kullanıcı bulundu. ID: 73
+[2026-01-13 13:33:12] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-13 13:33:12] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-13 13:33:12] Veritabanı kayıtları tamamlandı. Kod: 831DC421
+[2026-01-13 13:33:12] Mail gönderimi başlatılıyor... Alıcı: keserkubranur@gmail.com
+[2026-01-13 13:33:13] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-13 13:33:13] İşlem başarıyla tamamlandı.
+[2026-01-14 00:06:36] --------------------------------------------------
+[2026-01-14 00:06:36] YENİ İSTEK GELDİ. İşlem Başlıyor...
+[2026-01-14 00:06:36] Sipariş ID: 467581890 | Email: mehtappkse@hotmail.com | Tutar: 39.99 | Test Modu: 0
+[2026-01-14 00:06:36] Mevcut kullanıcı bulundu. ID: 607
+[2026-01-14 00:06:36] Shopier'den Gelen Ürün ID: 42410096
+[2026-01-14 00:06:36] EŞLEŞME BAŞARILI! Veritabanındaki Ürün: Fecir 1. Türkiye Geneli Deneme Sınavı (Türkçe ÖABT) (ID: 6)
+[2026-01-14 00:06:36] Veritabanı kayıtları tamamlandı. Kod: 551C3CD6
+[2026-01-14 00:06:36] Mail gönderimi başlatılıyor... Alıcı: mehtappkse@hotmail.com
+[2026-01-14 00:06:38] SONUÇ: HTML Mail başarıyla gönderildi.
+[2026-01-14 00:06:38] İşlem başarıyla tamamlandı.

@@ -1,136 +1,124 @@
 <?php
-// admin/manage_denemeler.php
+/**
+ * admin/manage_denemeler.php - Deneme Sınavları Yönetimi ve Onay Sistemi
+ */
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db_connect.php';
-require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/admin_functions.php';
 
-requireAdminLogin();
-$page_title = "Yayınları Yönet";
-
-$authorized_ids = getAuthorizedDenemeIds();
-
-// Denemeleri çek (Yazar bilgisiyle beraber)
-$sql = "SELECT d.*, y.ad_soyad as yazar_adi 
-        FROM denemeler d 
-        LEFT JOIN yazarlar y ON d.yazar_id = y.id";
-$params = [];
-
-if ($authorized_ids !== null) {
-    if (empty($authorized_ids)) {
-        $denemeler = [];
-    } else {
-        $in_clause = implode(',', array_fill(0, count($authorized_ids), '?'));
-        $sql .= " WHERE d.id IN ($in_clause)";
-        $params = $authorized_ids;
-    }
-}
-$sql .= " ORDER BY d.id DESC";
-
-try {
-    if (!isset($denemeler)) {
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $denemeler = $stmt->fetchAll();
-    }
-} catch (PDOException $e) {
-    set_admin_flash_message('error', "Hata: " . $e->getMessage());
-    $denemeler = [];
+// Oturum kontrolü
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: index.php");
+    exit;
 }
 
-include_once __DIR__ . '/../templates/admin_header.php';
+$message = "";
+$messageType = "";
+
+// --- ONAYLAMA İŞLEMİ ---
+if (isset($_GET['approve_id'])) {
+    $approveId = (int)$_GET['approve_id'];
+    $stmt = $pdo->prepare("UPDATE denemeler SET admin_onayi = 1, aktif_mi = 1 WHERE id = ?");
+    if ($stmt->execute([$approveId])) {
+        $message = "Deneme başarıyla onaylandı ve yayına alındı.";
+        $messageType = "success";
+    }
+}
+
+// --- SİLME İŞLEMİ ---
+if (isset($_GET['delete_id'])) {
+    $deleteId = (int)$_GET['delete_id'];
+    $stmt = $pdo->prepare("DELETE FROM denemeler WHERE id = ?");
+    if ($stmt->execute([$deleteId])) {
+        $message = "Deneme sistemden silindi.";
+        $messageType = "info";
+    }
+}
+
+// Denemeleri getir (Yazar bilgisiyle birlikte)
+$stmt = $pdo->query("SELECT d.*, y.ad_soyad as yazar_adi FROM denemeler d LEFT JOIN yazarlar y ON d.yazar_id = y.id ORDER BY d.admin_onayi ASC, d.id DESC");
+$denemeler = $stmt->fetchAll();
+
+include __DIR__ . '/../templates/admin_header.php';
 ?>
 
-<div class="row mb-4 align-items-center">
-    <div class="col">
-        <h3 class="fw-bold mb-0">Yayın Kütüphanesi</h3>
-        <p class="text-muted small">Tüm deneme sınavları ve soru bankalarının yönetimi.</p>
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="fas fa-file-pdf me-2 text-primary"></i>Deneme Onay & Yönetim</h2>
+        <a href="edit_deneme.php" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Yeni Deneme Ekle</a>
     </div>
-    <div class="col-auto">
-        <?php if (isSuperAdmin()): ?>
-            <a href="edit_deneme.php" class="btn btn-admin-primary">
-                <i class="fas fa-plus me-2"></i> Yeni Yayın Ekle
-            </a>
-        <?php endif; ?>
-    </div>
-</div>
 
-<div class="card border-0 shadow-sm rounded-4">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0 admin-table">
-                <thead>
-                    <tr>
-                        <th class="ps-4">Ürün Bilgisi</th>
-                        <th>Yazar / Kaynak</th>
-                        <th>Tür</th>
-                        <th>Soru</th>
-                        <th>Durum</th>
-                        <th class="text-end pe-4">İşlemler</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($denemeler)): ?>
-                        <tr><td colspan="6" class="text-center py-5 text-muted">Henüz yayınlanmış bir içerik bulunmuyor.</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($denemeler as $deneme): ?>
+    <?php if ($message): ?>
+        <div class="alert alert-<?= $messageType ?> alert-dismissible fade show" role="alert">
+            <?= $message ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-light rounded-3 p-2 me-3 text-primary">
-                                        <i class="fas <?php echo $deneme['tur'] == 'deneme' ? 'fa-file-alt' : 'fa-book'; ?> fa-lg"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-bold"><?php echo escape_html($deneme['deneme_adi']); ?></div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">ID: #<?php echo $deneme['id']; ?></div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="small fw-medium text-dark"><?php echo escape_html($deneme['yazar_adi'] ?? 'Platform Kaynağı'); ?></div>
-                            </td>
-                            <td>
-                                <?php if($deneme['tur'] == 'deneme'): ?>
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3">Deneme</span>
-                                <?php else: ?>
-                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3">Soru Bankası</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><span class="fw-bold"><?php echo $deneme['soru_sayisi']; ?></span></td>
-                            <td>
-                                <?php if ($deneme['aktif_mi']): ?>
-                                    <span class="text-success small fw-bold"><i class="fas fa-check-circle me-1"></i> Yayında</span>
-                                <?php else: ?>
-                                    <span class="text-danger small fw-bold"><i class="fas fa-times-circle me-1"></i> Pasif</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-end pe-4">
-                                <div class="btn-group">
-                                    <?php if (isSuperAdmin()): ?>
-                                        <a href="edit_deneme.php?id=<?php echo $deneme['id']; ?>" class="btn btn-sm btn-outline-primary" title="Düzenle">
+                            <th>ID</th>
+                            <th>Deneme Adı / Yazar</th>
+                            <th>Tür / Kategori</th>
+                            <th>Fiyat</th>
+                            <th>Durum</th>
+                            <th class="text-end">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($denemeler as $d): ?>
+                            <tr>
+                                <td>#<?= $d['id'] ?></td>
+                                <td>
+                                    <div class="fw-bold"><?= htmlspecialchars($d['deneme_adi']) ?></div>
+                                    <small class="text-muted"><i class="fas fa-user me-1"></i><?= htmlspecialchars($d['yazar_adi'] ?? 'Yönetici') ?></small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark"><?= htmlspecialchars($d['tur']) ?></span><br>
+                                    <small class="text-muted"><?= htmlspecialchars($d['kategori']) ?></small>
+                                </td>
+                                <td><?= number_format($d['fiyat'], 2) ?> ₺</td>
+                                <td>
+                                    <?php if ($d['admin_onayi'] == 0): ?>
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-clock me-1"></i>Onay Bekliyor</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Onaylı / Aktif</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <?php if ($d['admin_onayi'] == 0): ?>
+                                            <a href="?approve_id=<?= $d['id'] ?>" class="btn btn-sm btn-success" title="Onayla">
+                                                <i class="fas fa-check"></i> Onayla
+                                            </a>
+                                        <?php endif; ?>
+                                        <a href="edit_deneme.php?id=<?= $d['id'] ?>" class="btn btn-sm btn-outline-primary" title="Düzenle">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                    <?php endif; ?>
-                                    <a href="manage_cevaplar.php?deneme_id=<?php echo $deneme['id']; ?>" class="btn btn-sm btn-outline-info" title="Cevap Anahtarı">
-                                        <i class="fas fa-key"></i>
-                                    </a>
-                                    <form action="recalculate_scores.php" method="POST" class="d-inline">
-                                        <input type="hidden" name="csrf_token" value="<?php echo generate_admin_csrf_token(); ?>">
-                                        <input type="hidden" name="deneme_id" value="<?php echo $deneme['id']; ?>">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning" title="Yeniden Hesapla" 
-                                                onclick="return confirm('Tüm sonuçlar yeniden hesaplanacak. Emin misiniz?')">
-                                            <i class="fas fa-sync"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
+                                        <a href="<?= BASE_URL . $d['soru_kitapcik_dosyasi'] ?>" target="_blank" class="btn btn-sm btn-outline-secondary" title="PDF Görüntüle">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="?delete_id=<?= $d['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bu denemeyi silmek istediğinize emin misiniz?')" title="Sil">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php if (empty($denemeler)): ?>
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">Henüz kayıtlı veya onay bekleyen deneme bulunmuyor.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
-<?php include_once __DIR__ . '/../templates/admin_footer.php'; ?>
+<?php include __DIR__ . '/../templates/admin_footer.php'; ?>

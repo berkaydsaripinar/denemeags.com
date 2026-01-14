@@ -85,7 +85,7 @@ require_once __DIR__ . '/templates/header.php';
                         <div class="mb-3">
                             <div class="d-flex justify-content-between">
                                 <label class="form-label fw-bold small text-muted">ŞİFRE</label>
-                                <a href="#" class="small text-decoration-none" style="color: #F57C00;">Şifremi Unuttum?</a>
+                                <a href="forgot_password.php" class="small text-decoration-none" style="color: #F57C00;">Şifremi Unuttum?</a>
                             </div>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="fas fa-lock text-muted"></i></span>

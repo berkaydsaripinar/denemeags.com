@@ -1,5 +1,5 @@
 <?php
-// checkout.php - Shopier ödeme sayfası (dış yönlendirme)
+// checkout.php - Shopier ödeme sayfası (dış yönlendirme/iframe fallback)
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db_connect.php';
 require_once __DIR__ . '/includes/functions.php';
@@ -9,6 +9,7 @@ use Shopier\Enums\ProductType;
 use Shopier\Enums\WebsiteIndex;
 use Shopier\Models\Address;
 use Shopier\Models\Buyer;
+use Shopier\Renderers\IframeRenderer;
 use Shopier\Renderers\RedirectRenderer;
 use Shopier\Shopier;
 
@@ -116,7 +117,14 @@ include_once __DIR__ . '/templates/header.php';
             <div class="mb-4">
                 <h1 class="fw-bold text-primary">Güvenli Ödeme</h1>
                 <p class="text-muted mb-0">
-                    <?php echo escape_html($urun['deneme_adi']); ?> için Shopier ödeme sayfasına yönlendiriliyorsunuz. Ödeme tamamlandığında ürün otomatik olarak kütüphanenize tanımlanacaktır.
+                    <?php
+                    $redirect_supported = class_exists(RedirectRenderer::class);
+                    $checkout_message = $redirect_supported
+                        ? ' için Shopier ödeme sayfasına yönlendiriliyorsunuz.'
+                        : ' için Shopier ödeme ekranı açılıyor.';
+                    echo escape_html($urun['deneme_adi']) . $checkout_message;
+                    ?>
+                    Ödeme tamamlandığında ürün otomatik olarak kütüphanenize tanımlanacaktır.
                 </p>
             </div>
 
@@ -136,8 +144,15 @@ include_once __DIR__ . '/templates/header.php';
                 <div class="card-body p-4 text-center">
                     <?php
                     try {
-                        $renderer = new RedirectRenderer($shopier);
-                        $shopier->goWith($renderer);
+                        if ($redirect_supported) {
+                            $renderer = new RedirectRenderer($shopier);
+                            $shopier->goWith($renderer);
+                        } else {
+                            $renderer = new IframeRenderer($shopier);
+                            $renderer->setWidth('100%');
+                            $renderer->setHeight(700);
+                            $shopier->goWith($renderer);
+                        }
                     } catch (Exception $e) {
                         echo '<div class="text-danger">Ödeme başlatılamadı. Lütfen daha sonra tekrar deneyin.</div>';
                         error_log("Shopier ödeme hatası: " . $e->getMessage());

@@ -160,9 +160,12 @@ include_once __DIR__ . '/templates/header.php';
                                 echo (mb_strlen($desc) > 120) ? mb_substr($desc, 0, 117) . '...' : $desc;
                             ?>
                         </p>
-                        <div class="d-flex justify-content-between align-items-center mt-auto">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mt-auto">
                             <span class="product-price"><?php echo number_format($u['fiyat'], 2); ?> ₺</span>
-                            <a href="urun.php?id=<?php echo $u['id']; ?>" class="btn btn-primary product-cta">Detay</a>
+                            <div class="d-flex gap-2">
+                                <a href="urun.php?id=<?php echo $u['id']; ?>" class="btn btn-outline-primary product-cta">İncele</a>
+                                <a href="checkout.php?id=<?php echo $u['id']; ?>" target="_blank" rel="noopener" class="btn btn-primary product-cta">Satın Al</a>
+                            </div>
                         </div>
                     </div>
                 </div>

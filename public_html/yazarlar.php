@@ -199,7 +199,7 @@ require_once __DIR__ . '/includes/functions.php';
                         <i class="fas fa-lock me-1"></i> %100 KORSAN KORUMASI
                     </div>
                     <h1 class="hero-title">Emeğinizin<br>Dijital Kalesi.</h1>
-                    <p class="hero-subtitle">PDF’leriniz Telegram gruplarında ücretsiz dağıtılmasın. <strong>DenemeAGS Dijital İmza Teknolojisi</strong> ile eserlerinizi güvenceye alıyor, sadece hak ettiğiniz kazancı sunuyoruz.</p>
+                    <p class="hero-subtitle">PDF’leriniz Telegram gruplarında ücretsiz dağıtılmasın. <strong>DenemeAGS Dijital İmza Teknolojisi</strong> ile eserlerinizi güvenceye alıyor, satıştan erişime kadar her adımı otomatikleştiriyoruz.</p>
                     
                     <div class="d-flex flex-column flex-sm-row gap-3">
                         <a href="yazar/register.php" class="btn-cta text-center">
@@ -256,6 +256,7 @@ require_once __DIR__ . '/includes/functions.php';
                         <ul class="list-unstyled small mt-3">
                             <li><i class="fas fa-check text-success me-2"></i> Kendi Shopier hesabınızdan tahsilat</li>
                             <li><i class="fas fa-check text-success me-2"></i> Panelden kendi kodlarınızı üretme</li>
+                            <li><i class="fas fa-check text-success me-2"></i> Yeni sekmede ödeme yönlendirmesi</li>
                             <li><i class="fas fa-check text-success me-2"></i> <strong>Sadece %15</strong> hizmet bedeli</li>
                         </ul>
                     </div>
@@ -267,9 +268,50 @@ require_once __DIR__ . '/includes/functions.php';
                         <p class="text-muted small">Siz sadece PDF'i gönderin, geri kalan tüm satış, kod dağıtımı ve destek sürecini biz yönetelim.</p>
                         <ul class="list-unstyled small mt-3">
                             <li><i class="fas fa-check text-success me-2"></i> Tam otomatik satış ve teslimat</li>
+                            <li><i class="fas fa-check text-success me-2"></i> Ödeme sonrası otomatik kütüphane tanımlama</li>
+                            <li><i class="fas fa-check text-success me-2"></i> Satışlar yazar paneline anında yansır</li>
                             <li><i class="fas fa-check text-success me-2"></i> <strong>Cironun %70'i</strong> yazar hakedişi</li>
                             <li><i class="fas fa-check text-success me-2"></i> 15 günlük periyotlarla düzenli ödeme</li>
                         </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5 bg-light">
+        <div class="container py-4">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold text-primary">Yeni Özellikler: Uçtan Uca Otomasyon</h2>
+                <p class="text-muted">Shopier ödeme akışı ve teslimat süreçleri artık daha güvenli ve hızlı.</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="sec-card shadow-sm border-0 h-100">
+                        <div class="sec-icon"><i class="fas fa-bolt"></i></div>
+                        <h5>Otomatik Kütüphane</h5>
+                        <p class="text-muted small mb-0">Ödeme tamamlanır tamamlanmaz ürün, öğrencinin kütüphanesine otomatik tanımlanır.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="sec-card shadow-sm border-0 h-100">
+                        <div class="sec-icon"><i class="fas fa-chart-line"></i></div>
+                        <h5>Anlık Satış Takibi</h5>
+                        <p class="text-muted small mb-0">Satın alımlar yazar panelinde anında görünür, raporlamalar güncel kalır.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="sec-card shadow-sm border-0 h-100">
+                        <div class="sec-icon"><i class="fas fa-credit-card"></i></div>
+                        <h5>Yeni Sekmede Ödeme</h5>
+                        <p class="text-muted small mb-0">Shopier ödeme sayfası ayrı sekmede açılır; kullanıcı ürün sayfasını kaybetmez.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="sec-card shadow-sm border-0 h-100">
+                        <div class="sec-icon"><i class="fas fa-check-circle"></i></div>
+                        <h5>Ödeme Tamamlandı</h5>
+                        <p class="text-muted small mb-0">Yeni ödeme tamamlandı ekranı ile kullanıcıya net yönlendirme ve güven verir.</p>
                     </div>
                 </div>
             </div>

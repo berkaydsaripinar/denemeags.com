@@ -1,5 +1,5 @@
 <?php
-// checkout.php - Shopier ödeme sayfası (Site içi iframe)
+// checkout.php - Shopier ödeme sayfası (yeni sekmede açılır)
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/includes/db_connect.php';
 require_once __DIR__ . '/includes/functions.php';
@@ -9,7 +9,7 @@ use Shopier\Enums\ProductType;
 use Shopier\Enums\WebsiteIndex;
 use Shopier\Models\Address;
 use Shopier\Models\Buyer;
-use Shopier\Renderers\IframeRenderer;
+use Shopier\Renderers\AutoSubmitFormRenderer;
 use Shopier\Shopier;
 
 requireLogin();
@@ -54,7 +54,13 @@ if (!class_exists(Shopier::class)) {
     redirect('urun.php?id=' . $id);
 }
 
-$order_id = 'AGS-' . date('YmdHis') . '-' . strtoupper(bin2hex(random_bytes(3)));
+// ÖNEMLİ: Sipariş ID'sine deneme ID'sini gömüyoruz
+$order_id = sprintf(
+    'AGS-%d-%s-%s',
+    (int) $urun['id'],
+    date('YmdHis'),
+    strtoupper(bin2hex(random_bytes(3)))
+);
 $price = number_format((float) $urun['fiyat'], 2, '.', '');
 
 $shopier = new Shopier(SHOPIER_API_KEY, SHOPIER_API_SECRET);
@@ -82,11 +88,16 @@ $name_parts = explode(' ', trim($user['ad_soyad']));
 $buyer_name = $name_parts[0] ?? 'Müşteri';
 $buyer_surname = $name_parts[1] ?? 'DenemeAGS';
 
+// Email'e deneme ID ekleyerek gönder (webhook'ta parse edilecek)
+// Format: email+DENEME123@domain.com
+$email_parts = explode('@', $user['email']);
+$custom_email = $email_parts[0] . '+DENEME' . $urun['id'] . '@' . $email_parts[1];
+
 $buyer = new Buyer([
     'id' => $_SESSION['user_id'],
     'name' => $buyer_name,
     'surname' => $buyer_surname,
-    'email' => $user['email'],
+    'email' => $custom_email,  // berkay+DENEME123@gmail.com
     'phone' => telefon_formatla($user['telefon'] ?? '')
 ]);
 
@@ -111,7 +122,8 @@ include_once __DIR__ . '/templates/header.php';
             <div class="mb-4">
                 <h1 class="fw-bold text-primary">Güvenli Ödeme</h1>
                 <p class="text-muted mb-0">
-                    <?php echo escape_html($urun['deneme_adi']); ?> için ödeme adımındasınız. Ödeme tamamlandığında ürün otomatik olarak kütüphanenize tanımlanacaktır.
+                    <?php echo escape_html($urun['deneme_adi']); ?> için Shopier ödeme sayfası yeni sekmede açılacak.
+                    Ödeme tamamlandığında ürün otomatik olarak kütüphanenize tanımlanacaktır.
                 </p>
             </div>
 
@@ -128,22 +140,53 @@ include_once __DIR__ . '/templates/header.php';
             </div>
 
             <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-0">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-lock-fill text-success" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">Ödeme sayfası açılıyor...</h5>
+                        <p class="text-muted small">
+                            Eğer sayfa otomatik açılmazsa, aşağıdaki butona tıklayın.
+                        </p>
+                    </div>
+
                     <?php
                     try {
-                        $renderer = new IframeRenderer($shopier);
-                        $renderer->setWidth('100%');
-                        $renderer->setHeight(700);
+                        // AutoSubmitFormRenderer otomatik olarak yeni sekmede açılır
+                        $renderer = new AutoSubmitFormRenderer($shopier);
+                        
+                        // Form'u render et (otomatik submit olacak ve yeni sekmede açılacak)
                         $shopier->goWith($renderer);
+                        
                     } catch (Exception $e) {
-                        echo '<div class="p-4 text-danger">Ödeme başlatılamadı. Lütfen daha sonra tekrar deneyin.</div>';
+                        echo '<div class="alert alert-danger">Ödeme başlatılamadı. Lütfen daha sonra tekrar deneyin.</div>';
                         error_log("Shopier ödeme hatası: " . $e->getMessage());
                     }
                     ?>
+
+                    <div class="mt-4">
+                        <a href="store.php" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Mağazaya Dön
+                        </a>
+                    </div>
                 </div>
+            </div>
+
+            <div class="alert alert-info mt-4" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Önemli:</strong> Ödeme işlemini tamamladıktan sonra bu sayfaya geri dönebilir veya dashboard sayfanıza gidebilirsiniz.
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Ödeme penceresi açıldıktan sonra kullanıcıyı bilgilendir
+setTimeout(function() {
+    // Eğer popup blocker tarafından engellenirse kullanıcıya bilgi ver
+    if (document.querySelector('form[target="_blank"]')) {
+        console.log('Ödeme formu yeni sekmede açılıyor...');
+    }
+}, 1000);
+</script>
 
 <?php include_once __DIR__ . '/templates/footer.php'; ?>

@@ -48,7 +48,7 @@ include_once __DIR__ . '/templates/header.php';
                     <?php if($has_access): ?>
                         <a href="dashboard.php" class="btn btn-success btn-lg rounded-pill px-5 fw-bold">KÜTÜPHANEMDE VAR</a>
                     <?php else: ?>
-                        <a href="checkout.php?id=<?php echo $urun['id']; ?>" class="btn btn-warning btn-lg rounded-pill px-5 fw-bold text-dark">HEMEN SATIN AL</a>
+                        <a href="checkout.php?id=<?php echo $urun['id']; ?>" target="_blank" rel="noopener" class="btn btn-warning btn-lg rounded-pill px-5 fw-bold text-dark">HEMEN SATIN AL</a>
                     <?php endif; ?>
                 </div>
             </div>

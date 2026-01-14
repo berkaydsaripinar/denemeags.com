@@ -363,13 +363,9 @@ include_once __DIR__ . '/templates/header.php';
                                 </p>
                                 
                                 <div class="mt-3 pt-3 border-top">
-                                    <?php if (!empty($urun['shopier_link'])): ?>
-                                        <a href="<?php echo escape_html($urun['shopier_link']); ?>" target="_blank" class="btn btn-buy shadow-sm">
-                                            <i class="fas fa-shopping-cart me-2"></i> Satın Al ve İndir
-                                        </a>
-                                    <?php else: ?>
-                                        <button class="btn btn-secondary w-100 btn-sm" disabled>Yakında</button>
-                                    <?php endif; ?>
+                                    <a href="urun.php?id=<?php echo $urun['id']; ?>" class="btn btn-buy shadow-sm">
+                                        <i class="fas fa-shopping-cart me-2"></i> Detayları Gör
+                                    </a>
                                 </div>
                             </div>
                         </div>

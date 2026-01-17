@@ -26,6 +26,36 @@ try {
     $urunler = [];
 }
 
+$sidebar_defaults = [
+    'HOMEPAGE_SIDEBAR_TITLE' => 'Mağaza Kısa Yolu',
+    'HOMEPAGE_SIDEBAR_DESC' => 'DenemeAGS mağazasında tüm yayınlar dijital, hızlı ve erişilebilir. Satın alım sonrası anında kütüphanenizde.',
+    'HOMEPAGE_SIDEBAR_LIST' => "Anında PDF erişimi\nKargo bekleme yok\nYazara adil pay\nÇevre dostu içerik",
+    'HOMEPAGE_SIDEBAR_CTA_LABEL' => 'Mağazaya Git',
+    'HOMEPAGE_SIDEBAR_CTA_URL' => 'store.php',
+    'HOMEPAGE_SIDEBAR_NOTE' => 'Mobilde bile mağaza bir tık uzaklıkta.'
+];
+
+$sidebar_settings = $sidebar_defaults;
+try {
+    $placeholders = implode(',', array_fill(0, count($sidebar_defaults), '?'));
+    $stmt = $pdo->prepare("SELECT ayar_adi, ayar_degeri FROM sistem_ayarlari WHERE ayar_adi IN ($placeholders)");
+    $stmt->execute(array_keys($sidebar_defaults));
+    $sidebar_rows = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    foreach ($sidebar_rows as $key => $value) {
+        if (isset($sidebar_settings[$key]) && $value !== null && $value !== '') {
+            $sidebar_settings[$key] = $value;
+        }
+    }
+} catch (Exception $e) {
+    error_log("Anasayfa sidebar ayarları okunamadı: " . $e->getMessage());
+}
+
+$sidebar_cta_url = trim($sidebar_settings['HOMEPAGE_SIDEBAR_CTA_URL']);
+$sidebar_cta_url = filter_var($sidebar_cta_url, FILTER_SANITIZE_URL);
+$sidebar_cta_url = $sidebar_cta_url !== '' ? $sidebar_cta_url : '#urunler';
+
+$sidebar_list_items = array_values(array_filter(array_map('trim', explode("\n", $sidebar_settings['HOMEPAGE_SIDEBAR_LIST']))));
+
 include_once __DIR__ . '/templates/header.php';
 ?>
 
@@ -182,6 +212,84 @@ include_once __DIR__ . '/templates/header.php';
     }
     .btn-buy:hover { background: var(--dark); color: white; }
 
+    /* ANASAYFA LAYOUT */
+    .home-layout { background: var(--light); padding: 60px 0; }
+    .home-section {
+        background: #fff;
+        border-radius: 20px;
+        padding: clamp(28px, 4vw, 42px);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        margin-bottom: 24px;
+    }
+    .home-section h2 { color: var(--primary); }
+    .store-access-card {
+        background: linear-gradient(135deg, rgba(31, 60, 136, 0.08), rgba(245, 124, 0, 0.08));
+        border-radius: 16px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .store-access-card .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--accent);
+    }
+    .store-access-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .store-sidebar {
+        position: sticky;
+        top: 110px;
+    }
+    .sidebar-card {
+        background: #0f172a;
+        color: #fff;
+        border-radius: 20px;
+        padding: 28px;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+        margin-bottom: 20px;
+    }
+    .sidebar-card.secondary {
+        background: #fff;
+        color: #1f2937;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+    .sidebar-card h3 { font-size: 1.2rem; margin-bottom: 12px; }
+    .sidebar-list { list-style: none; padding: 0; margin: 0; }
+    .sidebar-list li { display: flex; gap: 10px; margin-bottom: 10px; font-size: 0.9rem; opacity: 0.9; }
+    .sidebar-cta {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        padding: 12px 18px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: 0.2s;
+    }
+    .sidebar-cta:hover { color: #fff; background: #e65100; transform: translateY(-2px); }
+    .impact-grid .impact-card {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 22px;
+        height: 100%;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .impact-card h5 { font-weight: 700; margin-bottom: 8px; }
+    .impact-card i { color: var(--accent); margin-bottom: 12px; }
+
     /* FAQ (Sık Sorulan Sorular) */
     .faq-section { padding: 70px 0; background: white; }
     .accordion-button:not(.collapsed) { background-color: rgba(31, 60, 136, 0.05); color: var(--primary); font-weight: bold; }
@@ -192,11 +300,33 @@ include_once __DIR__ . '/templates/header.php';
         .hero-section { text-align: center; padding-bottom: 80px; }
         .hero-desc { margin: 0 auto 30px; }
         .hero-title { margin-bottom: 15px; }
-        .process-section { margin-top: -30px; border-radius: 20px 20px 0 0; }
         .product-img-wrapper { height: 180px; }
         .d-flex.gap-3 { justify-content: center; flex-direction: column; align-items: center; }
         .btn-hero { width: 80%; max-width: 300px; }
+        body { padding-bottom: 90px; }
+        .store-sidebar { position: static; }
     }
+
+    .mobile-store-bar {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background: #0f172a;
+        color: #fff;
+        z-index: 1050;
+        padding: 12px 0;
+        box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.25);
+    }
+    .mobile-store-bar .btn {
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 8px 16px;
+        white-space: nowrap;
+    }
+    .mobile-store-bar small { color: rgba(255,255,255,0.7); }
 </style>
 
 <!-- HERO SECTION -->
@@ -214,9 +344,12 @@ include_once __DIR__ . '/templates/header.php';
                     ister tabletinize atıp dijital kalemle çözün.
                 </p>
                 
-                <div class="d-flex gap-3">
-                    <a href="#urunler" class="btn-hero btn-accent">
-                        <i class="fas fa-book-open me-2"></i> Denemeleri İncele
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="store.php" class="btn-hero btn-accent">
+                        <i class="fas fa-store me-2"></i> Mağazaya Git
+                    </a>
+                    <a href="#urunler" class="btn-hero" style="background: rgba(255,255,255,0.12); color: white; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="fas fa-book-open me-2"></i> Vitrin Ürünleri
                     </a>
                     <?php if (!isLoggedIn()): ?>
                     <a href="register.php" class="btn-hero" style="background: rgba(255,255,255,0.12); color: white; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">
@@ -246,73 +379,165 @@ include_once __DIR__ . '/templates/header.php';
     </div>
 </header>
 
-<!-- PROCESS SECTION -->
-<section class="process-section">
+<section class="home-layout">
     <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="fw-bold" style="color: var(--primary); font-size: 2rem;">Süreç Nasıl İşler?</h2>
-            <p class="text-muted">Teknoloji ile eğitimi birleştiren en kolay yol.</p>
-        </div>
-        
         <div class="row g-4">
-            <div class="col-md-4">
-                <div class="process-card">
-                    <div class="process-icon"><i class="fas fa-shopping-cart"></i></div>
-                    <span class="process-step">1. ADIM</span>
-                    <h4 class="fw-bold h5">Güvenle Satın Al</h4>
-                    <p class="text-muted small">Beğendiğiniz deneme sınavını veya soru bankasını Shopier altyapısıyla anında satın alın.</p>
+            <div class="col-lg-8">
+                <div class="home-section">
+                    <div class="store-access-card">
+                        <div class="tag">
+                            <i class="fas fa-store"></i> Mağazaya hızlı erişim
+                        </div>
+                        <div>
+                            <h2 class="fw-bold mb-2">Mağaza her zaman görünür, ürünler bir tık uzağınızda.</h2>
+                            <p class="text-muted mb-0">Denemeler, soru bankaları ve yeni eklenen materyaller tek ekranda. Telefonla girenler için mağaza bağlantısı sabit ve görünür.</p>
+                        </div>
+                        <div class="store-access-actions">
+                            <a href="store.php" class="btn btn-primary fw-bold">
+                                <i class="fas fa-shopping-bag me-2"></i> Tüm ürünlere git
+                            </a>
+                            <a href="#urunler" class="btn btn-outline-primary fw-bold">
+                                <i class="fas fa-star me-2"></i> Vitrin ürünleri
+                            </a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="process-card">
-                    <div class="process-icon"><i class="fas fa-file-pdf"></i></div>
-                    <span class="process-step">2. ADIM</span>
-                    <h4 class="fw-bold h5">PDF Dosyanı İndir</h4>
-                    <p class="text-muted small">Size özel olarak isminizle damgalanmış "Kişiye Özel PDF" dosyanıza kütüphanenizden anında erişin.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="process-card">
-                    <div class="process-icon"><i class="fas fa-print"></i></div>
-                    <span class="process-step">3. ADIM</span>
-                    <h4 class="fw-bold h5">Çıktı Al veya Dijital Çöz</h4>
-                    <p class="text-muted small">Dosyanız yazdırmaya uygundur. İster kağıda basın, ister ekrandan çözün. Tercih sizin!</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
-<!-- HYBRID FEATURES -->
-<section class="hybrid-features">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-5 mb-5 mb-lg-0">
-                <h2 class="fw-bold mb-4" style="color: var(--primary); font-size: 1.75rem;">Neden Hibrit Yayın?</h2>
-                <p class="text-muted mb-4">Eğitimde tek bir doğru yöntem yoktur. Kimi öğrenci kağıdın kokusunu sever, kimi teknolojinin hızını. Biz size her iki konforu da aynı anda sunuyoruz.</p>
-                <ul class="list-unstyled">
-                    <li class="mb-3 d-flex align-items-start"><i class="fas fa-check-circle text-success me-3 mt-1"></i> <div><strong>Kargo Beklemek Yok:</strong> Satın aldığınız an döküman kütüphanenizde.</div></li>
-                    <li class="mb-3 d-flex align-items-start"><i class="fas fa-check-circle text-success me-3 mt-1"></i> <div><strong>Ekonomik Seçenek:</strong> Matbaa maliyeti olmadığı için çok daha avantajlı fiyatlar.</div></li>
-                    <li class="mb-3 d-flex align-items-start"><i class="fas fa-check-circle text-success me-3 mt-1"></i> <div><strong>Kişiye Özel Koruma:</strong> Emeğin korunması için size özel dijital damgalama.</div></li>
-                </ul>
-            </div>
-            <div class="col-lg-7">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="h-feature-box">
-                            <i class="fas fa-print fa-2x mb-3 text-secondary opacity-50"></i>
-                            <h5 class="h6 fw-bold">Yazıcı Dostu Format</h5>
-                            <p class="small text-muted mb-0">Tüm PDF'lerimiz A4 boyutunda, siyah-beyaz baskıya uygun ve mürekkep tasarruflu olarak optimize edilmiştir.</p>
-                        </div>
+                <div class="home-section">
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold mb-2">Süreç Nasıl İşler?</h2>
+                        <p class="text-muted">Teknoloji ile eğitimi birleştiren en kolay yol.</p>
                     </div>
-                    <div class="col-md-6">
-                        <div class="h-feature-box" style="border-left-color: var(--accent);">
-                            <i class="fas fa-tablet-alt fa-2x mb-3 text-secondary opacity-50"></i>
-                            <h5 class="h6 fw-bold">Tablet ve Not Uyumu</h5>
-                            <p class="small text-muted mb-0">iPad veya Android tabletlerdeki not alma uygulamalarıyla (GoodNotes, Notability vb.) %100 uyumludur.</p>
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="process-card">
+                                <div class="process-icon"><i class="fas fa-shopping-cart"></i></div>
+                                <span class="process-step">1. ADIM</span>
+                                <h4 class="fw-bold h5">Güvenle Satın Al</h4>
+                                <p class="text-muted small">Beğendiğiniz deneme sınavını veya soru bankasını Shopier altyapısıyla anında satın alın.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="process-card">
+                                <div class="process-icon"><i class="fas fa-file-pdf"></i></div>
+                                <span class="process-step">2. ADIM</span>
+                                <h4 class="fw-bold h5">PDF Dosyanı İndir</h4>
+                                <p class="text-muted small">Size özel olarak isminizle damgalanmış "Kişiye Özel PDF" dosyanıza kütüphanenizden anında erişin.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="process-card">
+                                <div class="process-icon"><i class="fas fa-print"></i></div>
+                                <span class="process-step">3. ADIM</span>
+                                <h4 class="fw-bold h5">Çıktı Al veya Dijital Çöz</h4>
+                                <p class="text-muted small">Dosyanız yazdırmaya uygundur. İster kağıda basın, ister ekrandan çözün. Tercih sizin!</p>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="home-section">
+                    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4">
+                        <div>
+                            <h2 class="fw-bold mb-2">DenemeAGS Etkisi</h2>
+                            <p class="text-muted mb-0">Satın aldığınız her içerik hem çevre hem de üretici için daha sürdürülebilir bir modele katkı sağlar.</p>
+                        </div>
+                    </div>
+                    <div class="row g-3 impact-grid">
+                        <div class="col-md-6">
+                            <div class="impact-card">
+                                <i class="fas fa-leaf fa-lg"></i>
+                                <h5>Çevreye Katkı</h5>
+                                <p class="small text-muted mb-0">Fiziksel kargo, stok ve gereksiz baskı olmadığı için karbon ayak izi düşer, sadece ihtiyaç kadar çıktı alınır.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="impact-card">
+                                <i class="fas fa-hand-holding-heart fa-lg"></i>
+                                <h5>Yazara Adil Pay</h5>
+                                <p class="small text-muted mb-0">Matbaa ve dağıtım yükü azalır, içerik üreticisi emeğinin karşılığını daha şeffaf ve adil alır.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="impact-card">
+                                <i class="fas fa-wallet fa-lg"></i>
+                                <h5>Daha Ulaşılabilir Fiyatlar</h5>
+                                <p class="small text-muted mb-0">Kargo ve baskı maliyetleri düşürüldüğü için öğrencilere daha erişilebilir materyaller sunulur.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="impact-card">
+                                <i class="fas fa-bolt fa-lg"></i>
+                                <h5>Anında Erişim</h5>
+                                <p class="small text-muted mb-0">Satın aldığınız içerik saniyeler içinde kütüphanenizde hazır olur, bekleme süresi yoktur.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="home-section">
+                    <div class="row align-items-center">
+                        <div class="col-lg-5 mb-4 mb-lg-0">
+                            <h2 class="fw-bold mb-3">Neden Hibrit Yayın?</h2>
+                            <p class="text-muted mb-4">Eğitimde tek bir doğru yöntem yoktur. Kimi öğrenci kağıdın kokusunu sever, kimi teknolojinin hızını. Biz size her iki konforu da aynı anda sunuyoruz.</p>
+                            <ul class="list-unstyled">
+                                <li class="mb-3 d-flex align-items-start"><i class="fas fa-check-circle text-success me-3 mt-1"></i> <div><strong>Kargo Beklemek Yok:</strong> Satın aldığınız an döküman kütüphanenizde.</div></li>
+                                <li class="mb-3 d-flex align-items-start"><i class="fas fa-check-circle text-success me-3 mt-1"></i> <div><strong>Ekonomik Seçenek:</strong> Matbaa maliyeti olmadığı için çok daha avantajlı fiyatlar.</div></li>
+                                <li class="mb-3 d-flex align-items-start"><i class="fas fa-check-circle text-success me-3 mt-1"></i> <div><strong>Kişiye Özel Koruma:</strong> Emeğin korunması için size özel dijital damgalama.</div></li>
+                            </ul>
+                        </div>
+                        <div class="col-lg-7">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="h-feature-box">
+                                        <i class="fas fa-print fa-2x mb-3 text-secondary opacity-50"></i>
+                                        <h5 class="h6 fw-bold">Yazıcı Dostu Format</h5>
+                                        <p class="small text-muted mb-0">Tüm PDF'lerimiz A4 boyutunda, siyah-beyaz baskıya uygun ve mürekkep tasarruflu olarak optimize edilmiştir.</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="h-feature-box" style="border-left-color: var(--accent);">
+                                        <i class="fas fa-tablet-alt fa-2x mb-3 text-secondary opacity-50"></i>
+                                        <h5 class="h6 fw-bold">Tablet ve Not Uyumu</h5>
+                                        <p class="small text-muted mb-0">iPad veya Android tabletlerdeki not alma uygulamalarıyla (GoodNotes, Notability vb.) %100 uyumludur.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <aside class="store-sidebar">
+                    <div class="sidebar-card">
+                        <span class="badge bg-warning text-dark mb-3">Mağaza Sidebar</span>
+                        <h3><?php echo escape_html($sidebar_settings['HOMEPAGE_SIDEBAR_TITLE']); ?></h3>
+                        <p class="small opacity-75"><?php echo escape_html($sidebar_settings['HOMEPAGE_SIDEBAR_DESC']); ?></p>
+                        <ul class="sidebar-list">
+                            <?php foreach ($sidebar_list_items as $item): ?>
+                                <li><i class="fas fa-check-circle text-warning"></i><span><?php echo escape_html($item); ?></span></li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <a href="<?php echo escape_html($sidebar_cta_url); ?>" class="sidebar-cta mt-3">
+                            <i class="fas fa-shopping-basket"></i> <?php echo escape_html($sidebar_settings['HOMEPAGE_SIDEBAR_CTA_LABEL']); ?>
+                        </a>
+                        <div class="mt-3 small opacity-75">
+                            <i class="fas fa-mobile-alt me-1"></i> <?php echo escape_html($sidebar_settings['HOMEPAGE_SIDEBAR_NOTE']); ?>
+                        </div>
+                    </div>
+                    <div class="sidebar-card secondary">
+                        <h3 class="text-dark">Bugünün Mağaza Hatırlatıcısı</h3>
+                        <p class="small text-muted mb-3">Yeni içerikleri kaçırmamak için mağazayı her gün ziyaret edin. Mobilde bile tek dokunuşla erişim.</p>
+                        <div class="d-flex flex-column gap-2">
+                            <a href="#urunler" class="btn btn-outline-primary btn-sm fw-bold">
+                                <i class="fas fa-star me-1"></i> Vitrin ürünleri
+                            </a>
+                            <a href="store.php" class="btn btn-primary btn-sm fw-bold">
+                                <i class="fas fa-store me-1"></i> Tam mağaza
+                            </a>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </div>
     </div>
@@ -443,5 +668,17 @@ include_once __DIR__ . '/templates/header.php';
         <i class="fas fa-pen-nib position-absolute d-none d-md-block" style="font-size: 12rem; color: rgba(255,255,255,0.05); right: 20px; bottom: -30px; transform: rotate(-15deg);"></i>
     </div>
 </section>
+
+<div class="mobile-store-bar d-md-none">
+    <div class="container d-flex align-items-center justify-content-between gap-3">
+        <div>
+            <strong>Mağaza burada</strong>
+            <div><small><?php echo escape_html($sidebar_settings['HOMEPAGE_SIDEBAR_NOTE']); ?></small></div>
+        </div>
+        <a href="<?php echo escape_html($sidebar_cta_url); ?>" class="btn">
+            <i class="fas fa-store me-1"></i> <?php echo escape_html($sidebar_settings['HOMEPAGE_SIDEBAR_CTA_LABEL']); ?>
+        </a>
+    </div>
+</div>
 
 <?php require_once __DIR__ . '/templates/footer.php'; ?>

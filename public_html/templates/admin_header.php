@@ -198,6 +198,9 @@ $is_logged_in = isAdminLoggedIn();
             <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_admins.php' ? 'active' : ''; ?>">
                 <a href="manage_admins.php"><i class="fas fa-user-shield"></i> Yönetici Ayarları</a>
             </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'homepage_settings.php' ? 'active' : ''; ?>">
+                <a href="homepage_settings.php"><i class="fas fa-columns"></i> Anasayfa Sidebar</a>
+            </li>
             <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'system_settings.php' ? 'active' : ''; ?>">
                 <a href="system_settings.php"><i class="fas fa-cog"></i> Genel Ayarlar</a>
             </li>

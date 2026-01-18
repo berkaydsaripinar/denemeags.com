@@ -8,10 +8,14 @@ $errors = [];
 
 // Dosya Yükleme Ayarları
 $product_upload_dir = __DIR__ . '/../../uploads/products/';
+$video_upload_dir = __DIR__ . '/../../uploads/videos/';
 
 // Klasör kontrolü
 if (!is_dir($product_upload_dir)) {
     mkdir($product_upload_dir, 0777, true);
+}
+if (!is_dir($video_upload_dir)) {
+    mkdir($video_upload_dir, 0777, true);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $resim_url = null;
         $soru_pdf = null;
         $cozum_pdf = null;
+        $cozum_video = null;
 
         // --- DOSYA YÜKLEME ---
         
@@ -53,6 +58,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             move_uploaded_file($_FILES['cozum_pdf_file']['tmp_name'], $product_upload_dir . $cozum_pdf);
         }
 
+        // 4. Video Çözüm Dosyası (MP4)
+        if (isset($_FILES['cozum_video_file']) && $_FILES['cozum_video_file']['error'] === UPLOAD_ERR_OK) {
+            $ext = strtolower(pathinfo($_FILES['cozum_video_file']['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['mp4', 'webm'])) {
+                $errors[] = "Video çözüm dosyası sadece MP4 veya WEBM olabilir.";
+            } else {
+                $cozum_video = 'video_' . $yid . '_' . uniqid() . '.' . $ext;
+                move_uploaded_file($_FILES['cozum_video_file']['tmp_name'], $video_upload_dir . $cozum_video);
+            }
+        }
+
         // --- VALIDASYON ---
         if (empty($deneme_adi)) $errors[] = "Yayın adı boş bırakılamaz.";
         if (!$soru_pdf) $errors[] = "Soru kitapçığı (PDF) yüklemek zorunludur.";
@@ -62,14 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("
                     INSERT INTO denemeler (
                         yazar_id, deneme_adi, tur, kisa_aciklama, fiyat, soru_sayisi,
-                        resim_url, soru_kitapcik_dosyasi, cozum_linki, shopier_link, 
+                        resim_url, soru_kitapcik_dosyasi, cozum_linki, cozum_video_dosyasi, shopier_link, 
                         sonuc_aciklama_tarihi, aktif_mi
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
                 ");
                 
                 $stmt->execute([
                     $yid, $deneme_adi, $tur, $kisa_aciklama, $fiyat, $soru_sayisi,
-                    $resim_url, $soru_pdf, $cozum_pdf, $shopier_link, $sonuc_tarihi
+                    $resim_url, $soru_pdf, $cozum_pdf, $cozum_video, $shopier_link, $sonuc_tarihi
                 ]);
 
                 set_author_flash_message('success', 'Yayın başarıyla eklendi. Yönetici onayından sonra mağazada görünecektir.');
@@ -151,6 +167,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <label class="form-label small fw-bold text-muted text-uppercase">Çözüm Kitapçığı (PDF - Opsiyonel)</label>
                         <input type="file" name="cozum_pdf_file" class="form-control input-theme" accept=".pdf">
                         <div class="form-text small">Sınav bitiminde erişilebilecek çözüm dosyası.</div>
+                    </div>
+                    <div class="col-md-12 mb-0">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Video Çözüm (MP4/WEBM - Opsiyonel)</label>
+                        <input type="file" name="cozum_video_file" class="form-control input-theme" accept="video/mp4,video/webm">
+                        <div class="form-text small">Video çözüm dosyanızı buradan yükleyebilirsiniz.</div>
                     </div>
                 </div>
             </div>

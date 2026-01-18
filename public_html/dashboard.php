@@ -332,6 +332,19 @@ include_once __DIR__ . '/templates/header.php';
                                         <?php if (!empty($item['cozum_linki'])): ?>
                                             <a href="download_secure_pdf.php?id=<?php echo $item['id']; ?>&type=solution" class="btn btn-outline-success btn-sm rounded-pill fw-bold">Çözüm Kitapçığını İndir</a>
                                         <?php endif; ?>
+
+                                        <?php if (!empty($item['cozum_video_dosyasi'])): ?>
+                                            <?php if ($item['tur'] == 'deneme' && empty($item['active_katilim_id'])): ?>
+                                                <button class="btn btn-outline-warning btn-sm rounded-pill fw-bold" disabled>Video Çözümü İçin Sınava Başlayın</button>
+                                            <?php else: ?>
+                                                <?php
+                                                    $video_query = ($item['tur'] == 'deneme' && $item['active_katilim_id'])
+                                                        ? 'katilim_id=' . $item['active_katilim_id']
+                                                        : 'deneme_id=' . $item['id'];
+                                                ?>
+                                                <a href="view_video_solution.php?<?php echo $video_query; ?>" class="btn btn-outline-warning btn-sm rounded-pill fw-bold">Video Çözümü İzle</a>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>

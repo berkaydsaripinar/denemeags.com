@@ -161,6 +161,50 @@ function verify_csrf_token($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
+function generate_video_stream_token($deneme_id, $katilim_id = null, $ttl_seconds = 300) {
+    if (!isset($_SESSION['video_stream_tokens'])) {
+        $_SESSION['video_stream_tokens'] = [];
+    }
+
+    $now = time();
+    foreach ($_SESSION['video_stream_tokens'] as $token => $data) {
+        if (!isset($data['expires']) || $data['expires'] < $now) {
+            unset($_SESSION['video_stream_tokens'][$token]);
+        }
+    }
+
+    $token = bin2hex(random_bytes(24));
+    $_SESSION['video_stream_tokens'][$token] = [
+        'deneme_id' => (int)$deneme_id,
+        'katilim_id' => $katilim_id ? (int)$katilim_id : null,
+        'expires' => $now + (int)$ttl_seconds
+    ];
+
+    return $token;
+}
+
+function validate_video_stream_token($token, $deneme_id, $katilim_id = null) {
+    if (empty($token) || !isset($_SESSION['video_stream_tokens'][$token])) {
+        return false;
+    }
+
+    $token_data = $_SESSION['video_stream_tokens'][$token];
+    if ($token_data['expires'] < time()) {
+        unset($_SESSION['video_stream_tokens'][$token]);
+        return false;
+    }
+
+    if ((int)$token_data['deneme_id'] !== (int)$deneme_id) {
+        return false;
+    }
+
+    if ($katilim_id !== null && (int)$token_data['katilim_id'] !== (int)$katilim_id) {
+        return false;
+    }
+
+    return true;
+}
+
 // --- TARİH VE FORMATLAMA ---
 
 function format_tr_datetime($datetime_str, $format = 'd F Y, H:i') {

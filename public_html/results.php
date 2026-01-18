@@ -20,7 +20,7 @@ try {
         SELECT 
             kk.id AS katilim_id, kk.deneme_id, kk.dogru_sayisi, kk.yanlis_sayisi, kk.bos_sayisi, 
             kk.net_sayisi, kk.puan, kk.puan_can_egrisi, kk.sinav_tamamlama_tarihi,
-            d.deneme_adi, d.sonuc_aciklama_tarihi AS siralama_aciklama_tarihi, d.cozum_linki
+            d.deneme_adi, d.sonuc_aciklama_tarihi AS siralama_aciklama_tarihi, d.cozum_linki, d.cozum_video_dosyasi
         FROM kullanici_katilimlari kk
         JOIN denemeler d ON kk.deneme_id = d.id
         WHERE kk.id = :katilim_id AND kk.kullanici_id = :user_id
@@ -88,6 +88,7 @@ try {
 $page_title = ($sonuc_detaylari['deneme_adi'] ?? 'Deneme') . " Sonuçları";
 include_once __DIR__ . '/templates/header.php'; 
 
+$deneme_adi_js_cozum = htmlspecialchars(addslashes($sonuc_detaylari['deneme_adi'] ?? ''), ENT_QUOTES, 'UTF-8');
 $konu_labels_js = []; $konu_dogru_js = []; $konu_yanlis_js = []; $konu_bos_js = [];
 if (!empty($konu_analizi)) {
     foreach ($konu_analizi as $konu) {
@@ -128,13 +129,19 @@ if (!empty($konu_analizi)) {
                     // Çözüm Görüntüleme Butonu
                     if (!empty($sonuc_detaylari['cozum_linki'])): 
                         $view_solution_url = BASE_URL . '/view_solution.php?katilim_id=' . $katilim_id;
-                        $deneme_adi_js_cozum = htmlspecialchars(addslashes($sonuc_detaylari['deneme_adi']), ENT_QUOTES, 'UTF-8');
                     ?>
                         <button onclick="confirmAndViewSolution('<?php echo $view_solution_url; ?>', '<?php echo $deneme_adi_js_cozum; ?>')" class="btn btn-theme-primary">
                             Sınav Çözümlerini Görüntüle
                         </button>
                     <?php else: ?>
                         <div class="alert alert-theme-info small py-2 px-3 mb-0 text-center">Çözüm dosyası henüz yüklenmemiş.</div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($sonuc_detaylari['cozum_video_dosyasi'])): ?>
+                        <?php $view_video_url = BASE_URL . '/view_video_solution.php?katilim_id=' . $katilim_id; ?>
+                        <button onclick="confirmAndViewVideo('<?php echo $view_video_url; ?>', '<?php echo $deneme_adi_js_cozum; ?>')" class="btn btn-outline-warning">
+                            Video Çözümünü İzle
+                        </button>
                     <?php endif; ?>
                     
                     <?php
@@ -232,6 +239,13 @@ if (!empty($konu_analizi)) {
 <script>
 function confirmAndViewSolution(viewUrl, denemeAdi) {
     const uyariMesaji = "Sınav ve çözüm dökümanlarını (\"" + denemeAdi + "\") başkalarıyla paylaşırsam yasal bir maddi tazminat sorumluluğu üstleneceğimi anlıyorum.";
+    if (confirm(uyariMesaji)) {
+        window.open(viewUrl, '_blank');
+    }
+}
+
+function confirmAndViewVideo(viewUrl, denemeAdi) {
+    const uyariMesaji = "Video çözümlerini (\"" + denemeAdi + "\") başkalarıyla paylaşırsam erişimimin iptal edileceğini ve yasal sorumluluk taşıdığımı anlıyorum.";
     if (confirm(uyariMesaji)) {
         window.open(viewUrl, '_blank');
     }

@@ -19,7 +19,7 @@ $page_title = $is_editing ? "Yayını Güncelle" : "Yeni Yayın Ekle";
 // Form Verileri Varsayılanları
 $deneme_data = [
     'deneme_adi' => '', 'tur' => 'deneme', 'yazar_id' => null, 'kisa_aciklama' => '',
-    'soru_sayisi' => 50, 'sonuc_aciklama_tarihi' => '', 'cozum_linki' => '',
+    'soru_sayisi' => 50, 'sonuc_aciklama_tarihi' => '', 'cozum_linki' => '', 'cozum_video_dosyasi' => '',
     'soru_kitapcik_dosyasi' => '', 'resim_url' => '', 'shopier_link' => '',
     'shopier_product_id' => '', 'aktif_mi' => 1, 'anasayfada_goster' => 0
 ];
@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'kisa_aciklama' => trim($_POST['kisa_aciklama'] ?? ''),
             'soru_sayisi' => (int)($_POST['soru_sayisi'] ?? 50),
             'cozum_linki' => trim($_POST['cozum_linki'] ?? ''),
+            'cozum_video_dosyasi' => trim($_POST['cozum_video_dosyasi'] ?? ''),
             'soru_kitapcik_dosyasi' => trim($_POST['soru_kitapcik_dosyasi'] ?? ''),
             'resim_url' => trim($_POST['resim_url'] ?? ''),
             'shopier_link' => trim($_POST['shopier_link'] ?? ''),
@@ -62,15 +63,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($is_editing) {
                 $sql = "UPDATE denemeler SET deneme_adi=:deneme_adi, tur=:tur, yazar_id=:yazar_id, kisa_aciklama=:kisa_aciklama, 
-                        soru_sayisi=:soru_sayisi, cozum_linki=:cozum_linki, soru_kitapcik_dosyasi=:soru_kitapcik_dosyasi, 
-                        resim_url=:resim_url, shopier_link=:shopier_link, shopier_product_id=:shopier_product_id, 
-                        aktif_mi=:aktif_mi, anasayfada_goster=:anasayfada_goster, sonuc_aciklama_tarihi=:sonuc_aciklama_tarihi WHERE id=:id";
+                        soru_sayisi=:soru_sayisi, cozum_linki=:cozum_linki, cozum_video_dosyasi=:cozum_video_dosyasi, 
+                        soru_kitapcik_dosyasi=:soru_kitapcik_dosyasi, resim_url=:resim_url, shopier_link=:shopier_link, 
+                        shopier_product_id=:shopier_product_id, aktif_mi=:aktif_mi, anasayfada_goster=:anasayfada_goster, 
+                        sonuc_aciklama_tarihi=:sonuc_aciklama_tarihi WHERE id=:id";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute(array_merge($post_data, ['id' => $deneme_id]));
                 set_admin_flash_message('success', 'Yayın başarıyla güncellendi.');
             } else {
-                $sql = "INSERT INTO denemeler (deneme_adi, tur, yazar_id, kisa_aciklama, soru_sayisi, cozum_linki, soru_kitapcik_dosyasi, resim_url, shopier_link, shopier_product_id, aktif_mi, anasayfada_goster, sonuc_aciklama_tarihi) 
-                        VALUES (:deneme_adi, :tur, :yazar_id, :kisa_aciklama, :soru_sayisi, :cozum_linki, :soru_kitapcik_dosyasi, :resim_url, :shopier_link, :shopier_product_id, :aktif_mi, :anasayfada_goster, :sonuc_aciklama_tarihi)";
+                $sql = "INSERT INTO denemeler (deneme_adi, tur, yazar_id, kisa_aciklama, soru_sayisi, cozum_linki, cozum_video_dosyasi, soru_kitapcik_dosyasi, resim_url, shopier_link, shopier_product_id, aktif_mi, anasayfada_goster, sonuc_aciklama_tarihi) 
+                        VALUES (:deneme_adi, :tur, :yazar_id, :kisa_aciklama, :soru_sayisi, :cozum_linki, :cozum_video_dosyasi, :soru_kitapcik_dosyasi, :resim_url, :shopier_link, :shopier_product_id, :aktif_mi, :anasayfada_goster, :sonuc_aciklama_tarihi)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($post_data);
                 set_admin_flash_message('success', 'Yeni yayın başarıyla eklendi.');
@@ -147,6 +149,10 @@ include_once __DIR__ . '/../templates/admin_header.php';
                             <label class="form-label fw-bold small">ÇÖZÜM PDF DOSYA ADI</label>
                             <input type="text" name="cozum_linki" class="form-control input-theme" value="<?php echo escape_html($deneme_data['cozum_linki']); ?>" placeholder="cozum1.pdf">
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">ÇÖZÜM VİDEO DOSYA ADI (MP4)</label>
+                        <input type="text" name="cozum_video_dosyasi" class="form-control input-theme" value="<?php echo escape_html($deneme_data['cozum_video_dosyasi']); ?>" placeholder="cozum-video-1.mp4">
                     </div>
                     <div class="mb-0">
                         <label class="form-label fw-bold small">KAPAK RESMİ URL</label>

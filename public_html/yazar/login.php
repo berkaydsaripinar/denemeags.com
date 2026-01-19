@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($yazar && password_verify($password, $yazar['sifre_hash'])) {
             $_SESSION['yazar_id'] = $yazar['id'];
             $_SESSION['yazar_name'] = $yazar['ad_soyad'];
-            redirect('dashboard.php');
+            redirect('yazar/dashboard.php');
         } else {
             $error = "E-posta/Şifre hatalı veya hesabınız henüz onaylanmadı.";
         }

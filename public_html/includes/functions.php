@@ -328,8 +328,6 @@ function send_smtp_email($to_email, $subject, $message_body) {
         return false;
     }
 }
-// --- AKILLI RESİM URL GETİRİCİ ---
-// ... (Diğer kodların en altına) ...
 
 // --- URL TABANLI RESİM GETİRİCİ ---
 function get_image_url($url) {

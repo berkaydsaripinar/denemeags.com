@@ -14,8 +14,8 @@ define('BASE_URL', 'https://denemeags.com');
 // Shopier Ayarları (ENV üzerinden okunur)
 define('SHOPIER_API_KEY', getenv('SHOPIER_API_KEY') ?: '');
 define('SHOPIER_API_SECRET', getenv('SHOPIER_API_SECRET') ?: '');
-define('SHOPIER_WEBSITE_INDEX', getenv('SHOPIER_WEBSITE_INDEX') ?: '1');
-                                                 
+define('SHOPIER_WEBSITE_INDEX', getenv('SHOPIER_WEBSITE_INDEX') ?: '1');    
+define('VIDEO_STREAM_SECRET', getenv('VIDEO_STREAM_SECRET') ?: 'change-this-secret');
 // Saat Dilimi
 date_default_timezone_set('Europe/Istanbul');
 

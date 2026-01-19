@@ -16,6 +16,10 @@ class ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca
         array (
             'setasign\\Fpdi\\' => 14,
         ),
+        'S' => 
+        array (
+            'Shopier\\' => 8,
+        ),
         'P' => 
         array (
             'Psr\\Log\\' => 8,
@@ -38,6 +42,10 @@ class ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca
         'setasign\\Fpdi\\' => 
         array (
             0 => __DIR__ . '/..' . '/setasign/fpdi/src',
+        ),
+        'Shopier\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/erkineren/shopier/src',
         ),
         'Psr\\Log\\' => 
         array (
@@ -69,11 +77,16 @@ class ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca
         ),
     );
 
+    public static $classMap = array (
+        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+    );
+
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca::$classMap;
 
         }, null, ClassLoader::class);
     }

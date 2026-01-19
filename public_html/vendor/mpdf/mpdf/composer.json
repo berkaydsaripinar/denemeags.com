@@ -21,7 +21,7 @@
 		"docs": "https://mpdf.github.io"
 	},
 	"require": {
-		"php": "^5.6 || ^7.0 || ~8.0.0 || ~8.1.0 || ~8.2.0 || ~8.3.0 || ~8.4.0",
+		"php": "^5.6 || ^7.0 || ~8.0.0 || ~8.1.0 || ~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
 		"ext-gd": "*",
 		"ext-mbstring": "*",
 		"mpdf/psr-http-message-shim": "^1.0 || ^2.0",
@@ -64,7 +64,7 @@
 		"post-install-cmd": [
 			"php -r \"chmod('./tmp', 0777);\""
 		],
-		"cs": "@php vendor/bin/phpcs -v --report-width=160 --standard=ruleset.xml --severity=1 --warning-severity=0 --extensions=php src utils tests",
+		"cs": "@php vendor/bin/phpcs --report-width=160 --standard=ruleset.xml --severity=1 --warning-severity=0 --extensions=php src utils tests",
 		"test": "@php vendor/bin/phpunit",
 		"coverage": "@php vendor/bin/phpunit --coverage-text"
 	},

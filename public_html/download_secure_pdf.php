@@ -193,6 +193,9 @@ try {
 
     $tempPdfPath = tempnam($tempDir, 'stamped_') . '.pdf';
     $mpdf->Output($tempPdfPath, \Mpdf\Output\Destination::FILE);
+    if (!file_exists($tempPdfPath) || filesize($tempPdfPath) === 0) {
+        throw new RuntimeException('Geçici PDF dosyası oluşturulamadı.');
+    }
 
     if (!class_exists('Imagick')) {
         throw new RuntimeException('PDF güvenliği için Imagick PHP eklentisi gereklidir.');
@@ -202,6 +205,9 @@ try {
     $imagick = new Imagick();
     $imagick->setResolution($rasterDpi, $rasterDpi);
     $imagick->readImage($tempPdfPath);
+    if ($imagick->getNumberImages() === 0) {
+        throw new RuntimeException('PDF sayfaları rasterize edilemedi.');
+    }
 
     $pageImages = [];
     foreach ($imagick as $index => $page) {

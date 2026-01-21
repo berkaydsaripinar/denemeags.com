@@ -103,9 +103,10 @@ try {
 
     $pageCount = $mpdf->setSourceFile($file_path);
     $erisim_kodu = $data['erisim_kodu'] ?? 'KOD_BULUNAMADI';
+    $document_id = bin2hex(random_bytes(8));
     
     // --- GÜVENLİK FİLİGRANI (Çapraz, Silik) ---
-    $watermarkText = escape_html($user_ad_soyad) . " | KOD: " . escape_html($erisim_kodu) . " | IP: " . $ip_adresi;
+    $watermarkText = escape_html($user_ad_soyad) . " | KOD: " . escape_html($erisim_kodu) . " | IP: " . $ip_adresi . " | BELGE: " . $document_id;
     
     $mpdf->SetWatermarkText($watermarkText);
     $mpdf->showWatermarkText = true;
@@ -115,9 +116,10 @@ try {
 
     // --- ÜST VE ALT BİLGİ METİNLERİ ---
     $headerFooterText = sprintf(
-        "KİŞİYE ÖZEL KOPYA: %s | ERIŞİM KODU: %s | %s - BU BELGE PAYLAŞILAMAZ!", 
+        "KİŞİYE ÖZEL KOPYA: %s | ERIŞİM KODU: %s | BELGE KODU: %s | %s - BU BELGE PAYLAŞILAMAZ!", 
         escape_html($user_ad_soyad), 
         escape_html($erisim_kodu), 
+        $document_id,
         date('d.m.Y H:i')
     );
 
@@ -152,6 +154,7 @@ try {
                     <div style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ddd; margin: 0 auto; width: 80%;">
                         <p style="font-size: 12pt; margin: 5px 0;"><strong>Adı Soyadı:</strong> ' . escape_html($user_ad_soyad) . '</p>
                         <p style="font-size: 12pt; margin: 5px 0;"><strong>Erişim Kodu:</strong> ' . escape_html($erisim_kodu) . '</p>
+                        <p style="font-size: 12pt; margin: 5px 0;"><strong>Belge Kodu:</strong> ' . $document_id . '</p>
                         <p style="font-size: 12pt; margin: 5px 0;"><strong>İndirme Tarihi:</strong> ' . date('d.m.Y H:i') . '</p>
                         <p style="font-size: 12pt; margin: 5px 0;"><strong>IP Adresi:</strong> ' . $ip_adresi . '</p>
                     </div>
@@ -166,6 +169,10 @@ try {
                         Belge üzerinde, izinsiz paylaşım yapan kişiyi tespit etmeye yarayan görünür ve gizli dijital takip kodları bulunmaktadır. 
                         İhlal tespiti durumunda yasal işlem başlatılacak ve maddi/manevi tazminat talep edilecektir.
                     </p>
+
+                    <p style="font-size: 11pt; margin-top: 25px;">
+                        Bu belgenin bütünlüğü sunucuda kriptografik olarak doğrulanabilir. Belge kodu ile doğrulama talep edebilirsiniz.
+                    </p>
                 </div>
             ';
             
@@ -179,9 +186,114 @@ try {
         }
     }
 
+    $tempDir = __DIR__ . '/tmp';
+    if (!is_dir($tempDir)) {
+        mkdir($tempDir, 0755, true);
+    }
+
+    $tempPdfPath = tempnam($tempDir, 'stamped_') . '.pdf';
+    $mpdf->Output($tempPdfPath, \Mpdf\Output\Destination::FILE);
+    if (!file_exists($tempPdfPath) || filesize($tempPdfPath) === 0) {
+        throw new RuntimeException('Geçici PDF dosyası oluşturulamadı.');
+    }
+
+    if (!class_exists('Imagick')) {
+        throw new RuntimeException('PDF güvenliği için Imagick PHP eklentisi gereklidir.');
+    }
+
+    $rasterDpi = 200;
+    $imagick = new Imagick();
+    $imagick->setResolution($rasterDpi, $rasterDpi);
+    $imagick->readImage($tempPdfPath);
+    if ($imagick->getNumberImages() === 0) {
+        throw new RuntimeException('PDF sayfaları rasterize edilemedi.');
+    }
+
+    $pageImages = [];
+    foreach ($imagick as $index => $page) {
+        $page->setImageBackgroundColor('white');
+        $page->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+        $page->setImageFormat('png');
+        $page->setImageCompressionQuality(90);
+
+        $imagePath = $tempDir . '/page_' . $index . '_' . $document_id . '.png';
+        $page->writeImage($imagePath);
+
+        $pageImages[] = [
+            'path' => $imagePath,
+            'width_px' => $page->getImageWidth(),
+            'height_px' => $page->getImageHeight()
+        ];
+        $page->clear();
+    }
+    $imagick->clear();
+    $imagick->destroy();
+
+    $signaturePayload = [
+        'document_id' => $document_id,
+        'user_id' => $user_id,
+        'deneme_id' => $deneme_id,
+        'type' => $type,
+        'issued_at' => date('c')
+    ];
+    $signaturePayloadB64 = rtrim(strtr(base64_encode(json_encode($signaturePayload, JSON_UNESCAPED_UNICODE)), '+/', '-_'), '=');
+    $signature = hash_hmac('sha256', $signaturePayloadB64, PDF_SIGNATURE_SECRET);
+    $signatureToken = 'DENEMEAGS_SIG:' . $signaturePayloadB64 . '.' . $signature;
+
+    $finalPdf = new Mpdf([
+        'mode' => 'utf-8',
+        'default_font' => 'dejavusans',
+        'tempDir' => $tempDir
+    ]);
+    $finalPdf->SetTitle('DenemeAGS Güvenli PDF');
+    $finalPdf->SetAuthor(SITE_NAME);
+    $finalPdf->SetSubject('Güvenli indirme doğrulama bilgisi içerir.');
+    $finalPdf->SetKeywords($signatureToken);
+
+    foreach ($pageImages as $pageImage) {
+        $widthMm = ($pageImage['width_px'] / $rasterDpi) * 25.4;
+        $heightMm = ($pageImage['height_px'] / $rasterDpi) * 25.4;
+
+        $finalPdf->AddPage('', '', 0, 0, 0, 0, 0, 0, 0, 0, '', '', '', '', '', $widthMm, $heightMm);
+        $finalPdf->Image($pageImage['path'], 0, 0, $widthMm, $heightMm, 'PNG');
+    }
+
+    $pdfBinary = $finalPdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
+    $pdfHash = hash('sha256', $pdfBinary);
+    $pdfHmac = hash_hmac('sha256', $pdfHash, PDF_SIGNATURE_SECRET);
+
+    $signatureLogPath = __DIR__ . '/uploads/pdf_signature_log.jsonl';
+    $logEntry = [
+        'document_id' => $document_id,
+        'user_id' => $user_id,
+        'deneme_id' => $deneme_id,
+        'type' => $type,
+        'file' => $target_filename,
+        'signature_token' => $signatureToken,
+        'hash' => $pdfHash,
+        'hmac' => $pdfHmac,
+        'created_at' => date('c'),
+        'ip' => $ip_adresi
+    ];
+    file_put_contents($signatureLogPath, json_encode($logEntry, JSON_UNESCAPED_UNICODE) . PHP_EOL, FILE_APPEND | LOCK_EX);
+
     $outputName = $file_name_prefix . '_' . $deneme_id . '_' . date('Ymd') . '.pdf';
-    ob_end_clean(); 
-    $mpdf->Output($outputName, \Mpdf\Output\Destination::DOWNLOAD);
+    if (ob_get_length()) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $outputName . '"');
+    header('Content-Length: ' . strlen($pdfBinary));
+    echo $pdfBinary;
+
+    if (file_exists($tempPdfPath)) {
+        unlink($tempPdfPath);
+    }
+    foreach ($pageImages as $pageImage) {
+        if (file_exists($pageImage['path'])) {
+            unlink($pageImage['path']);
+        }
+    }
 
 } catch (\Exception $e) {
     die('Bir hata oluştu: ' . $e->getMessage());

@@ -348,6 +348,9 @@ include_once __DIR__ . '/templates/header.php';
                     <a href="store.php" class="btn-hero btn-accent">
                         <i class="fas fa-store me-2"></i> Mağazaya Git
                     </a>
+                    <a href="verify_pdf.php" class="btn-hero" style="background: rgba(255,255,255,0.12); color: white; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="fas fa-file-signature me-2"></i> PDF Doğrula
+                    </a>
                     <a href="#urunler" class="btn-hero" style="background: rgba(255,255,255,0.12); color: white; backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2);">
                         <i class="fas fa-book-open me-2"></i> Vitrin Ürünleri
                     </a>

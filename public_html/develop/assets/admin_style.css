@@ -1,0 +1,210 @@
+/* assets/admin_style.css */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f2f5; /* Açık gri arka plan */
+    color: #333;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.admin-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #ffffff; /* Beyaz içerik alanı */
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    flex-grow: 1;
+}
+
+.admin-header-main {
+    background-color: #4A5568; /* Koyu Gri/Mavi Başlık */
+    color: #ffffff;
+    padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-header-main h1 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin: 0;
+}
+.admin-header-main a {
+    color: #E2E8F0;
+    text-decoration: none;
+    margin-left: 15px;
+}
+.admin-header-main a:hover {
+    color: #ffffff;
+}
+
+
+.btn-admin {
+    background-color: #4299E1; /* Mavi */
+    color: white;
+    font-weight: 500;
+    padding: 8px 15px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+.btn-admin:hover {
+    background-color: #2B6CB0; /* Koyu Mavi */
+}
+.btn-admin.green { background-color: #48BB78; }
+.btn-admin.green:hover { background-color: #38A169; }
+.btn-admin.red { background-color: #F56565; }
+.btn-admin.red:hover { background-color: #E53E3E; }
+.btn-admin.yellow { background-color: #ECC94B; color: #422006;}
+.btn-admin.yellow:hover { background-color: #D69E2E; }
+
+
+.input-admin {
+    border: 1px solid #CBD5E0; /* Gri Kenarlık */
+    border-radius: 6px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 10px;
+}
+
+.input-admin:focus {
+    border-color: #4299E1; /* Odaklandığında Mavi */
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
+    outline: none;
+}
+textarea.input-admin {
+    min-height: 80px;
+    resize: vertical;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #4A5568;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.admin-page-title {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: #2D3748; /* Koyu Gri */
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.message-box { /* Kullanıcı tarafındaki ile aynı, yeniden kullanılabilir */
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    border-left-width: 4px;
+    border-left-style: solid;
+}
+.message-box.success { background-color: #D1FAE5; color: #065F46; border-left-color: #10B981; }
+.message-box.error { background-color: #FEE2E2; color: #991B1B; border-left-color: #EF4444; }
+.message-box.info { background-color: #DBEAFE; color: #1E40AF; border-left-color: #3B82F6; }
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 0.9em;
+}
+.admin-table th, .admin-table td {
+    border: 1px solid #E2E8F0;
+    padding: 10px;
+    text-align: left;
+    vertical-align: middle;
+}
+.admin-table th {
+    background-color: #F7FAFC;
+    font-weight: 600;
+    color: #4A5568;
+}
+.admin-table tr:nth-child(even) {
+    background-color: #F7FAFC;
+}
+.admin-table td .btn-admin {
+    margin-right: 5px;
+    padding: 5px 10px;
+    font-size: 0.85em;
+}
+.admin-table .actions {
+    white-space: nowrap;
+}
+
+.admin-nav ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.admin-nav ul li a {
+    display: block;
+    padding: 10px 15px;
+    background-color: #E2E8F0;
+    color: #2D3748;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+.admin-nav ul li a:hover, .admin-nav ul li a.active {
+    background-color: #4299E1;
+    color: white;
+}
+
+.admin-footer-main {
+    text-align: center;
+    padding: 15px;
+    background-color: #ffffff;
+    color: #718096;
+    font-size: 0.9em;
+    margin-top: auto;
+    border-top: 1px solid #E2E8F0;
+}
+.w-full { width: 100%; }
+.text-center { text-align: center; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-4 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+.form-inline {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+}
+.form-inline .form-group {
+    margin-bottom: 0;
+    flex-grow: 1;
+}
+.form-inline label {
+    font-size: 0.9em;
+}

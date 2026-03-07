@@ -1,0 +1,15 @@
+SetEnv APP_ENV develop
+SetEnv APP_BASE_URL https://develop.denemeags.com
+
+# Develop veritabani hazir oldugunda bu degiskenleri hostingte veya burada tanimlayin.
+# SetEnv DB_HOST localhost
+# SetEnv DB_NAME u120099295_deneme_develop
+# SetEnv DB_USER u120099295_deneme_develop
+# SetEnv DB_PASS change-me
+
+SetEnv SHOPIER_API_KEY add990af427394172f1c758570342bba
+SetEnv SHOPIER_API_SECRET 979c5a280d0b1e3bc984c1c6fb184755
+SetEnv SHOPIER_WEBSITE_INDEX 1
+
+
+

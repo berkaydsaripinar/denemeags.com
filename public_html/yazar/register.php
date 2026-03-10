@@ -121,9 +121,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['register'])) {
                                     <h5 class="fw-bold mb-0">Paket-1: Manuel</h5>
                                     <span class="badge bg-warning text-dark">%15 Hizmet Bedeli</span>
                                 </div>
-                                <p class="small text-muted mb-0">Operasyonu ve tahsilatı kendi Shopier hesabınızdan yönetmek isteyen yazarlar için.</p>
+                                <p class="small text-muted mb-0">Operasyonu ve tahsilatı kendi PAYTR hesabınızdan yönetmek isteyen yazarlar için.</p>
                                 <ul class="feature-list">
-                                    <li><i class="fas fa-check"></i> Kendi Shopier hesabınızdan satış</li>
+                                    <li><i class="fas fa-check"></i> Kendi PAYTR hesabınızdan satış</li>
                                     <li><i class="fas fa-check"></i> Kodları panelden siz üretirsiniz</li>
                                     <li><i class="fas fa-check"></i> Güvenlik altyapımız aktiftir</li>
                                     <li><i class="fas fa-check"></i> Haftalık mahsuplaşma ve ödeme</li>

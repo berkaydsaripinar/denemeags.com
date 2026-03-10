@@ -129,7 +129,7 @@ include_once __DIR__ . '/../templates/admin_header.php';
                         <a href="edit_deneme.php" class="btn btn-admin-primary py-2"><i class="fas fa-plus me-2"></i> Yeni Yayın Ekle</a>
                         <a href="generate_codes.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Toplu Kod Üret</a>
                         <a href="manage_duyurular.php" class="btn btn-light py-2 border text-start"><i class="fas fa-bullhorn me-2"></i> Duyuru Yayınla</a>
-                        <a href="webhook_logs.php" class="btn btn-light py-2 border text-start"><i class="fas fa-bullhorn me-2"></i> Shopier Logları</a>
+                        <a href="webhook_logs.php" class="btn btn-light py-2 border text-start"><i class="fas fa-bullhorn me-2"></i> PAYTR Logları</a>
                         <a href="product_stats.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Kod İstatistik</a>
                         <a href="generate_standard_codes.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Standart Kod</a>
 
@@ -152,7 +152,7 @@ include_once __DIR__ . '/../templates/admin_header.php';
                         <span class="text-success"><i class="fas fa-check-circle"></i> Aktif</span>
                     </div>
                     <div class="d-flex justify-content-between small">
-                        <span>Shopier Webhook</span>
+                        <span>PAYTR Webhook</span>
                         <span class="text-success"><i class="fas fa-check-circle"></i> Hazır</span>
                     </div>
                 </div>

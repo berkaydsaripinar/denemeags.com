@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fiyat = (float)$_POST['fiyat'];
         $soru = (int)$_POST['soru_sayisi'];
         $desc = trim($_POST['kisa_aciklama']);
-        $shopier = trim($_POST['shopier_link']);
+        $paytr_prefix = trim($_POST['paytr_merchant_oid_prefix']);
         $aciklama_tarihi = !empty($_POST['sonuc_aciklama_tarihi']) ? $_POST['sonuc_aciklama_tarihi'] : null;
 
         if (empty($adi)) $errors[] = "Yayın adı boş bırakılamaz.";
@@ -48,17 +48,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt_upd = $pdo->prepare("
                     UPDATE denemeler SET 
                         deneme_adi = ?, fiyat = ?, soru_sayisi = ?, 
-                        kisa_aciklama = ?, shopier_link = ?, sonuc_aciklama_tarihi = ? 
+                        kisa_aciklama = ?, paytr_merchant_oid_prefix = ?, sonuc_aciklama_tarihi = ? 
                     WHERE id = ? AND yazar_id = ?
                 ");
-                $stmt_upd->execute([$adi, $fiyat, $soru, $desc, $shopier, $aciklama_tarihi, $pid, $yid]);
+                $stmt_upd->execute([$adi, $fiyat, $soru, $desc, $paytr_prefix, $aciklama_tarihi, $pid, $yid]);
                 
                 // Veriyi tazele
                 $product['deneme_adi'] = $adi;
                 $product['fiyat'] = $fiyat;
                 $product['soru_sayisi'] = $soru;
                 $product['kisa_aciklama'] = $desc;
-                $product['shopier_link'] = $shopier;
+                $product['paytr_merchant_oid_prefix'] = $paytr_prefix;
                 $product['sonuc_aciklama_tarihi'] = $aciklama_tarihi;
                 
                 $success = "Yayın bilgileri başarıyla güncellendi.";
@@ -153,8 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label small fw-bold text-muted">SHOPIER ÖDEME LİNKİ</label>
-                        <input type="url" name="shopier_link" class="form-control input-theme" value="<?php echo escape_html($product['shopier_link']); ?>" placeholder="https://www.shopier.com/...">
+                        <label class="form-label small fw-bold text-muted">PAYTR OID ÖN EKİ</label>
+                        <input type="text" name="paytr_merchant_oid_prefix" class="form-control input-theme" value="<?php echo escape_html($product['paytr_merchant_oid_prefix']); ?>" placeholder="Örn: AGS">
                     </div>
 
                     <div class="mb-5">

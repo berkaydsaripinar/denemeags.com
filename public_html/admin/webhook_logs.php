@@ -14,7 +14,7 @@ if (!isSuperAdmin()) {
 }
 
 $log_file = __DIR__ . '/../webhook_debug.txt';
-$page_title = "Shopier Webhook Logları";
+$page_title = "PAYTR Webhook Logları";
 
 // --- AKSİYON: LOGLARI TEMİZLE ---
 if (isset($_POST['clear_logs']) && verify_admin_csrf_token($_POST['csrf_token'])) {
@@ -57,7 +57,7 @@ function get_log_style($text) {
 <div class="row mb-4 align-items-center">
     <div class="col">
         <h3 class="fw-bold mb-0">Webhook İşlem Kayıtları</h3>
-        <p class="text-muted small">Shopier'den gelen son sinyaller ve işlem detayları.</p>
+        <p class="text-muted small">PAYTR'den gelen son sinyaller ve işlem detayları.</p>
     </div>
     <div class="col-auto">
         <form method="POST" onsubmit="return confirm('Tüm log kayıtlarını silmek istediğinizden emin misiniz?');">

@@ -53,7 +53,7 @@ include_once __DIR__ . '/templates/header.php';
                             <div class="col-md-4">
                                 <div class="border rounded-4 p-3 h-100">
                                     <div class="fw-semibold mb-2">1. Onay</div>
-                                    <div class="text-muted small">Shopier ödemenizi onayladı.</div>
+                                    <div class="text-muted small">PAYTR ödemenizi onayladı.</div>
                                 </div>
                             </div>
                             <div class="col-md-4">

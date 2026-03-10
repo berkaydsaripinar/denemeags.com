@@ -417,7 +417,7 @@ include_once __DIR__ . '/templates/header.php';
                                 <div class="process-icon"><i class="fas fa-shopping-cart"></i></div>
                                 <span class="process-step">1. ADIM</span>
                                 <h4 class="fw-bold h5">Güvenle Satın Al</h4>
-                                <p class="text-muted small">Beğendiğiniz deneme sınavını veya soru bankasını Shopier altyapısıyla anında satın alın.</p>
+                                <p class="text-muted small">Beğendiğiniz deneme sınavını veya soru bankasını PAYTR altyapısıyla anında satın alın.</p>
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -619,7 +619,7 @@ include_once __DIR__ . '/templates/header.php';
                         </h2>
                         <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
                             <div class="accordion-body text-muted small">
-                                Ödemeniz Shopier üzerinden onaylandığı an sistemimiz size bir erişim kodu üretir ve kütüphanenize tanımlar. Giriş yaptıktan sonra "Kütüphanem" sekmesinden dosyanızı anında indirebilirsiniz.
+                                Ödemeniz PAYTR üzerinden onaylandığı an sistemimiz size bir erişim kodu üretir ve kütüphanenize tanımlar. Giriş yaptıktan sonra "Kütüphanem" sekmesinden dosyanızı anında indirebilirsiniz.
                             </div>
                         </div>
                     </div>

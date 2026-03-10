@@ -20,8 +20,8 @@ $page_title = $is_editing ? "Yayını Güncelle" : "Yeni Yayın Ekle";
 $deneme_data = [
     'deneme_adi' => '', 'tur' => 'deneme', 'yazar_id' => null, 'kisa_aciklama' => '',
     'soru_sayisi' => 50, 'sonuc_aciklama_tarihi' => '', 'cozum_linki' => '', 'cozum_video_dosyasi' => '',
-    'soru_kitapcik_dosyasi' => '', 'resim_url' => '', 'shopier_link' => '',
-    'shopier_product_id' => '', 'aktif_mi' => 1, 'anasayfada_goster' => 0
+    'soru_kitapcik_dosyasi' => '', 'resim_url' => '', 'paytr_merchant_oid_prefix' => '',
+    'paytr_product_ref' => '', 'aktif_mi' => 1, 'anasayfada_goster' => 0
 ];
 
 // Yazarları Çek (Aktif yazarlar listesi için)
@@ -53,8 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'cozum_video_dosyasi' => trim($_POST['cozum_video_dosyasi'] ?? ''),
             'soru_kitapcik_dosyasi' => trim($_POST['soru_kitapcik_dosyasi'] ?? ''),
             'resim_url' => trim($_POST['resim_url'] ?? ''),
-            'shopier_link' => trim($_POST['shopier_link'] ?? ''),
-            'shopier_product_id' => trim($_POST['shopier_product_id'] ?? ''),
+            'paytr_merchant_oid_prefix' => trim($_POST['paytr_merchant_oid_prefix'] ?? ''),
+            'paytr_product_ref' => trim($_POST['paytr_product_ref'] ?? ''),
             'aktif_mi' => isset($_POST['aktif_mi']) ? 1 : 0,
             'anasayfada_goster' => isset($_POST['anasayfada_goster']) ? 1 : 0,
             'sonuc_aciklama_tarihi' => (!empty($_POST['sonuc_aciklama_tarihi'])) ? $_POST['sonuc_aciklama_tarihi'] : null
@@ -64,15 +64,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($is_editing) {
                 $sql = "UPDATE denemeler SET deneme_adi=:deneme_adi, tur=:tur, yazar_id=:yazar_id, kisa_aciklama=:kisa_aciklama, 
                         soru_sayisi=:soru_sayisi, cozum_linki=:cozum_linki, cozum_video_dosyasi=:cozum_video_dosyasi, 
-                        soru_kitapcik_dosyasi=:soru_kitapcik_dosyasi, resim_url=:resim_url, shopier_link=:shopier_link, 
-                        shopier_product_id=:shopier_product_id, aktif_mi=:aktif_mi, anasayfada_goster=:anasayfada_goster, 
+                        soru_kitapcik_dosyasi=:soru_kitapcik_dosyasi, resim_url=:resim_url, paytr_merchant_oid_prefix=:paytr_merchant_oid_prefix, 
+                        paytr_product_ref=:paytr_product_ref, aktif_mi=:aktif_mi, anasayfada_goster=:anasayfada_goster, 
                         sonuc_aciklama_tarihi=:sonuc_aciklama_tarihi WHERE id=:id";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute(array_merge($post_data, ['id' => $deneme_id]));
                 set_admin_flash_message('success', 'Yayın başarıyla güncellendi.');
             } else {
-                $sql = "INSERT INTO denemeler (deneme_adi, tur, yazar_id, kisa_aciklama, soru_sayisi, cozum_linki, cozum_video_dosyasi, soru_kitapcik_dosyasi, resim_url, shopier_link, shopier_product_id, aktif_mi, anasayfada_goster, sonuc_aciklama_tarihi) 
-                        VALUES (:deneme_adi, :tur, :yazar_id, :kisa_aciklama, :soru_sayisi, :cozum_linki, :cozum_video_dosyasi, :soru_kitapcik_dosyasi, :resim_url, :shopier_link, :shopier_product_id, :aktif_mi, :anasayfada_goster, :sonuc_aciklama_tarihi)";
+                $sql = "INSERT INTO denemeler (deneme_adi, tur, yazar_id, kisa_aciklama, soru_sayisi, cozum_linki, cozum_video_dosyasi, soru_kitapcik_dosyasi, resim_url, paytr_merchant_oid_prefix, paytr_product_ref, aktif_mi, anasayfada_goster, sonuc_aciklama_tarihi) 
+                        VALUES (:deneme_adi, :tur, :yazar_id, :kisa_aciklama, :soru_sayisi, :cozum_linki, :cozum_video_dosyasi, :soru_kitapcik_dosyasi, :resim_url, :paytr_merchant_oid_prefix, :paytr_product_ref, :aktif_mi, :anasayfada_goster, :sonuc_aciklama_tarihi)";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($post_data);
                 set_admin_flash_message('success', 'Yeni yayın başarıyla eklendi.');
@@ -91,7 +91,7 @@ include_once __DIR__ . '/../templates/admin_header.php';
 <div class="row mb-4 align-items-center">
     <div class="col">
         <h3 class="fw-bold mb-0"><?php echo $page_title; ?></h3>
-        <p class="text-muted small">Hibrit yayın ayarları ve Shopier entegrasyonu.</p>
+        <p class="text-muted small">Hibrit yayın ayarları ve PAYTR entegrasyonu.</p>
     </div>
 </div>
 
@@ -167,12 +167,12 @@ include_once __DIR__ . '/../templates/admin_header.php';
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-body p-4">
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">SHOPIER ÜRÜN ID</label>
-                        <input type="text" name="shopier_product_id" class="form-control input-theme" value="<?php echo escape_html($deneme_data['shopier_product_id']); ?>" placeholder="Örn: 12345678">
+                        <label class="form-label fw-bold small">PAYTR ÜRÜN REFERANSI</label>
+                        <input type="text" name="paytr_product_ref" class="form-control input-theme" value="<?php echo escape_html($deneme_data['paytr_product_ref']); ?>" placeholder="Örn: 12345678">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">SATIŞ LİNKİ (URL)</label>
-                        <input type="text" name="shopier_link" class="form-control input-theme" value="<?php echo escape_html($deneme_data['shopier_link']); ?>" placeholder="https://shopier.com/...">
+                        <label class="form-label fw-bold small">OID ÖN EKİ</label>
+                        <input type="text" name="paytr_merchant_oid_prefix" class="form-control input-theme" value="<?php echo escape_html($deneme_data['paytr_merchant_oid_prefix']); ?>" placeholder="Örn: AGS">
                     </div>
                     <div class="mb-0">
                         <label class="form-label fw-bold small">SORU SAYISI</label>

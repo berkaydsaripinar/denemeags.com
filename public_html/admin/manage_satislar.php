@@ -162,7 +162,7 @@ include_once __DIR__ . '/../templates/admin_header.php';
 </div>
 
 <div class="alert alert-info mt-4 border-0 shadow-sm rounded-4 small">
-    <i class="fas fa-info-circle me-2"></i> <strong>Önemli:</strong> Buradaki rakamlar veritabanına kaydedilen brüt tutarlardır. Aracı ödeme kuruluşlarının (Shopier/Iyzico) kendi işlem ücretleri platform payından düşülmelidir.
+    <i class="fas fa-info-circle me-2"></i> <strong>Önemli:</strong> Buradaki rakamlar veritabanına kaydedilen brüt tutarlardır. Aracı ödeme kuruluşlarının (PAYTR/Iyzico) kendi işlem ücretleri platform payından düşülmelidir.
 </div>
 
 <?php include_once __DIR__ . '/../templates/admin_footer.php'; ?>

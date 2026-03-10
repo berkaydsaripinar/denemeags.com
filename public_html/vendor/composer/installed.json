@@ -1,67 +1,6 @@
 {
         "packages": [
                 {
-                        "name": "erkineren/shopier",
-                        "version": "v0.3.1",
-                        "version_normalized": "0.3.1.0",
-                        "source": {
-                                "type": "git",
-                                "url": "https://github.com/erkineren/shopier.git",
-                                "reference": "89637f5e7baab1bbf441b02e24b1c5b79bb86acc"
-                        },
-                        "dist": {
-                                "type": "zip",
-                                "url": "https://api.github.com/repos/erkineren/shopier/zipball/89637f5e7baab1bbf441b02e24b1c5b79bb86acc",
-                                "reference": "89637f5e7baab1bbf441b02e24b1c5b79bb86acc",
-                                "shasum": ""
-                        },
-                        "require": {
-                                "ext-json": "*"
-                        },
-                        "require-dev": {
-                                "vlucas/phpdotenv": "^5.6.1"
-                        },
-                        "time": "2024-12-28T06:04:34+00:00",
-                        "type": "library",
-                        "installation-source": "dist",
-                        "autoload": {
-                                "psr-4": {
-                                        "Shopier\\": "src/"
-                                }
-                        },
-                        "notification-url": "https://packagist.org/downloads/",
-                        "license": [
-                                "MIT"
-                        ],
-                        "authors": [
-                                {
-                                        "name": "Erkin Eren",
-                                        "email": "hello@erkin.net",
-                                        "homepage": "https://erkin.net"
-                                }
-                        ],
-                        "description": "Shopier Entegrasyon - Php Api Sdk",
-                        "keywords": [
-                                "api",
-                                "entegrasyon",
-                                "integration",
-                                "payment gateway",
-                                "shopier",
-                                "ödeme alma entegrasyonu"
-                        ],
-                        "support": {
-                                "issues": "https://github.com/erkineren/shopier/issues",
-                                "source": "https://github.com/erkineren/shopier/tree/v0.3.1"
-                        },
-                        "funding": [
-                                {
-                                        "url": "https://www.patreon.com/erkineren",
-                                        "type": "patreon"
-                                }
-                        ],
-                        "install-path": "../erkineren/shopier"
-                },
-                {
                         "name": "mpdf/mpdf",
                         "version": "v8.2.7",
                         "version_normalized": "8.2.7.0",

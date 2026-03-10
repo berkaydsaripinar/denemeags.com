@@ -2,6 +2,56 @@
 // includes/db_connect.php
 require_once __DIR__ . '/../config.php'; // Önce config.php'yi çağır (varsayılan ayarlar için)
 
+if (!function_exists('is_truthy_setting')) {
+    function is_truthy_setting($value) {
+        $normalized = strtolower(trim((string) $value));
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+}
+
+if (!function_exists('should_bypass_maintenance_mode')) {
+    function should_bypass_maintenance_mode() {
+        $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+        $path = '/' . ltrim((string) $path, '/');
+
+        if (
+            str_starts_with($path, '/admin') ||
+            str_starts_with($path, '/yazar') ||
+            $path === '/admin.php' ||
+            $path === '/yazar.php'
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('should_show_maintenance_page')) {
+    function should_show_maintenance_page() {
+        if (!defined('APP_ENV') || APP_ENV !== 'production') {
+            return false;
+        }
+
+        $rawHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $hostWithoutPort = explode(':', $rawHost)[0];
+        if (!in_array($hostWithoutPort, ['denemeags.com', 'www.denemeags.com'], true)) {
+            return false;
+        }
+
+        return !should_bypass_maintenance_mode();
+    }
+}
+
+if (!function_exists('render_maintenance_page')) {
+    function render_maintenance_page() {
+        http_response_code(503);
+        header('Retry-After: 3600');
+        include __DIR__ . '/../templates/maintenance_page.php';
+        exit;
+    }
+}
+
 $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -21,6 +71,9 @@ try {
     }
     if (!defined('PUAN_CARPANI')) {
         define('PUAN_CARPANI', $GLOBALS['site_ayarlari']['PUAN_CARPANI'] ?? 2);
+    }
+    if (!defined('SITE_MAINTENANCE_MODE')) {
+        define('SITE_MAINTENANCE_MODE', 0);
     }
     // Eğer kritik bir hataysa, siteyi durdurabiliriz.
     die("Site şu anda teknik bir sorun yaşamaktadır. Lütfen daha sonra tekrar deneyiniz. (DB Connect Error)");
@@ -44,8 +97,10 @@ try {
     } elseif (!defined('PUAN_CARPANI')) {
         define('PUAN_CARPANI', $GLOBALS['site_ayarlari']['PUAN_CARPANI'] ?? 2); // config.php'deki varsayılan
     }
-    
-    // Diğer ayarlar da buraya eklenebilir.
+
+    if (!defined('SITE_MAINTENANCE_MODE')) {
+        define('SITE_MAINTENANCE_MODE', isset($db_settings['SITE_MAINTENANCE_MODE']) && is_truthy_setting($db_settings['SITE_MAINTENANCE_MODE']) ? 1 : 0);
+    }
 
 } catch (PDOException $e) {
     error_log("Sistem ayarları veritabanından çekilirken hata: " . $e->getMessage());
@@ -56,5 +111,12 @@ try {
     if (!defined('PUAN_CARPANI')) {
         define('PUAN_CARPANI', $GLOBALS['site_ayarlari']['PUAN_CARPANI'] ?? 2);
     }
+    if (!defined('SITE_MAINTENANCE_MODE')) {
+        define('SITE_MAINTENANCE_MODE', 0);
+    }
+}
+
+if (SITE_MAINTENANCE_MODE === 1 && should_show_maintenance_page()) {
+    render_maintenance_page();
 }
 ?>

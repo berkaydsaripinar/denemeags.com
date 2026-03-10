@@ -257,7 +257,7 @@ require_once __DIR__ . '/includes/functions.php';
                             <li><i class="fas fa-check text-success me-2"></i> Tam otomatik satış ve teslimat</li>
                             <li><i class="fas fa-check text-success me-2"></i> Ödeme sonrası otomatik kütüphane tanımlama</li>
                             <li><i class="fas fa-check text-success me-2"></i> Satışlar yazar paneline anında yansır</li>
-                            <li><i class="fas fa-check text-success me-2"></i> Yeni sekmede güvenli Shopier ödeme akışı</li>
+                            <li><i class="fas fa-check text-success me-2"></i> Yeni sekmede güvenli PAYTR ödeme akışı</li>
                             <li><i class="fas fa-check text-success me-2"></i> <strong>%70 pay</strong> (net ve şeffaf)</li>
                             <li><i class="fas fa-check text-success me-2"></i> 15 günlük periyotlarla düzenli ödeme</li>
                         </ul>
@@ -271,7 +271,7 @@ require_once __DIR__ . '/includes/functions.php';
         <div class="container py-4">
             <div class="text-center mb-5">
                 <h2 class="fw-bold text-primary">Yeni Özellikler: Uçtan Uca Otomasyon</h2>
-                <p class="text-muted">Shopier ödeme akışı ve teslimat süreçleri artık daha güvenli ve hızlı.</p>
+                <p class="text-muted">PAYTR ödeme akışı ve teslimat süreçleri artık daha güvenli ve hızlı.</p>
             </div>
             <div class="row g-4">
                 <div class="col-md-6 col-lg-3">
@@ -292,7 +292,7 @@ require_once __DIR__ . '/includes/functions.php';
                     <div class="sec-card shadow-sm border-0 h-100">
                         <div class="sec-icon"><i class="fas fa-credit-card"></i></div>
                         <h5>Yeni Sekmede Ödeme</h5>
-                        <p class="text-muted small mb-0">Shopier ödeme sayfası ayrı sekmede açılır; kullanıcı ürün sayfasını kaybetmez.</p>
+                        <p class="text-muted small mb-0">PAYTR ödeme sayfası ayrı sekmede açılır; kullanıcı ürün sayfasını kaybetmez.</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-3">

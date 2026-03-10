@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fiyat = str_replace(',', '.', $_POST['fiyat'] ?? '0');
         $soru_sayisi = (int)($_POST['soru_sayisi'] ?? 50);
         $kisa_aciklama = trim($_POST['kisa_aciklama'] ?? '');
-        $shopier_link = trim($_POST['shopier_link'] ?? '');
+        $paytr_merchant_oid_prefix = trim($_POST['paytr_merchant_oid_prefix'] ?? '');
         $sonuc_tarihi = !empty($_POST['sonuc_aciklama_tarihi']) ? $_POST['sonuc_aciklama_tarihi'] : null;
 
         // Dosya İsimleri (Başlangıçta boş)
@@ -76,14 +76,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare("
                     INSERT INTO denemeler (
                         yazar_id, deneme_adi, tur, kisa_aciklama, fiyat, soru_sayisi,
-                        resim_url, soru_kitapcik_dosyasi, cozum_linki, cozum_video_dosyasi, shopier_link, 
+                        resim_url, soru_kitapcik_dosyasi, cozum_linki, cozum_video_dosyasi, paytr_merchant_oid_prefix, 
                         sonuc_aciklama_tarihi, aktif_mi
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
                 ");
                 
                 $stmt->execute([
                     $yid, $deneme_adi, $tur, $kisa_aciklama, $fiyat, $soru_sayisi,
-                    $resim_url, $soru_pdf, $cozum_pdf, $cozum_video, $shopier_link, $sonuc_tarihi
+                    $resim_url, $soru_pdf, $cozum_pdf, $cozum_video, $paytr_merchant_oid_prefix, $sonuc_tarihi
                 ]);
 
                 set_author_flash_message('success', 'Yayın başarıyla eklendi. Yönetici onayından sonra mağazada görünecektir.');
@@ -189,9 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label small fw-bold text-muted text-uppercase">Shopier Linki</label>
-                    <input type="url" name="shopier_link" class="form-control input-theme" placeholder="https://shopier.com/...">
-                    <div class="form-text small">Mağaza yönlendirmesi için gereklidir.</div>
+                    <label class="form-label small fw-bold text-muted text-uppercase">PAYTR OID Öneki</label>
+                    <input type="text" name="paytr_merchant_oid_prefix" class="form-control input-theme" placeholder="Örn: AGS">
+                    <div class="form-text small">Ödeme sipariş numarası üretiminde önek olarak kullanılır.</div>
                 </div>
 
                 <div class="mb-0">

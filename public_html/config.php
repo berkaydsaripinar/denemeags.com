@@ -92,10 +92,16 @@ define('TMP_DIR', APP_ROOT . '/tmp');
 define('CACHE_DIR', APP_ROOT . '/cache');
 define('WEBHOOK_LOG_FILE', APP_ROOT . '/webhook_debug.txt');
 
-// Shopier Ayarları (ENV üzerinden okunur)
-define('SHOPIER_API_KEY', getenv('SHOPIER_API_KEY') ?: '');
-define('SHOPIER_API_SECRET', getenv('SHOPIER_API_SECRET') ?: '');
-define('SHOPIER_WEBSITE_INDEX', getenv('SHOPIER_WEBSITE_INDEX') ?: '1');
+// PAYTR Ayarları (ENV üzerinden okunur)
+define('PAYTR_MERCHANT_ID', getenv('PAYTR_MERCHANT_ID') ?: '');
+define('PAYTR_MERCHANT_KEY', getenv('PAYTR_MERCHANT_KEY') ?: '');
+define('PAYTR_MERCHANT_SALT', getenv('PAYTR_MERCHANT_SALT') ?: '');
+define('PAYTR_TEST_MODE', getenv('PAYTR_TEST_MODE') ?: '0');
+define('PAYTR_DEBUG_ON', getenv('PAYTR_DEBUG_ON') ?: '1');
+define('PAYTR_TIMEOUT_LIMIT', getenv('PAYTR_TIMEOUT_LIMIT') ?: '30');
+define('PAYTR_NO_INSTALLMENT', getenv('PAYTR_NO_INSTALLMENT') ?: '0');
+define('PAYTR_MAX_INSTALLMENT', getenv('PAYTR_MAX_INSTALLMENT') ?: '0');
+define('PAYTR_CURRENCY', getenv('PAYTR_CURRENCY') ?: 'TL');
 define('VIDEO_STREAM_SECRET', getenv('VIDEO_STREAM_SECRET') ?: 'change-this-secret');
 define('PDF_SIGNATURE_SECRET', getenv('PDF_SIGNATURE_SECRET') ?: VIDEO_STREAM_SECRET);
 

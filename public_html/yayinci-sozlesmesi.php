@@ -84,7 +84,7 @@ require_once __DIR__ . '/config.php';
         <div class="package-box">
             <h5>MODEL-1: MANUEL İŞLEYİŞ (Hizmet Bedeli Esası)</h5>
             <ul>
-                <li>YAYINCI, satış işlemlerini kendi Shopier veya harici tahsilat kanalları üzerinden gerçekleştirir.</li>
+                <li>YAYINCI, satış işlemlerini kendi PAYTR veya harici tahsilat kanalları üzerinden gerçekleştirir.</li>
                 <li>PLATFORM, sadece siber güvenlik (filigran, dinamik damgalama) ve sınav altyapısını sağlar.</li>
                 <li>YAYINCI, sistem üzerinden oluşturduğu ve dağıttığı her bir kod/aktivasyon için brüt satış bedelinin <strong>%15</strong>'ini PLATFORM'a hizmet bedeli olarak öder.</li>
                 <li>Mahsuplaşma ve ödeme takibi haftalık periyotlarda gerçekleştirilir.</li>

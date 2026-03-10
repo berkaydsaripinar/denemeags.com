@@ -22,21 +22,40 @@ foreach($res as $row) {
     $settings[$row['ayar_adi']] = $row;
 }
 
+$maintenance_mode_raw = strtolower(trim((string) ($settings['SITE_MAINTENANCE_MODE']['ayar_degeri'] ?? '0')));
+$is_maintenance_mode_enabled = in_array($maintenance_mode_raw, ['1', 'true', 'yes', 'on'], true);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verify_admin_csrf_token($_POST['csrf_token'])) {
+    if (!verify_admin_csrf_token($_POST['csrf_token'] ?? '')) {
         set_admin_flash_message('error', 'Güvenlik hatası.');
     } else {
         try {
             $pdo->beginTransaction();
-            
-            $updates = [
-                'NET_KATSAYISI' => $_POST['net_katsayisi'],
-                'PUAN_CARPANI' => $_POST['puan_carpani']
+
+            $settings_meta = [
+                'NET_KATSAYISI' => 'Örn: 4 girerseniz 4 yanlış 1 doğruyu siler.',
+                'PUAN_CARPANI' => 'Her bir netin toplam puana etkisi.',
+                'SITE_MAINTENANCE_MODE' => '1 aktif, 0 pasif. Bakım modu yalnızca denemeags.com ön yüzünü kapatır; admin ve yazar paneli açık kalır.'
             ];
 
+            $updates = [
+                'NET_KATSAYISI' => (string) ($_POST['net_katsayisi'] ?? 4),
+                'PUAN_CARPANI' => (string) ($_POST['puan_carpani'] ?? 2),
+                'SITE_MAINTENANCE_MODE' => isset($_POST['site_maintenance_mode']) ? '1' : '0'
+            ];
+
+            $stmt = $pdo->prepare(
+                "INSERT INTO sistem_ayarlari (ayar_adi, ayar_degeri, aciklama)
+                 VALUES (:ayar_adi, :ayar_degeri, :aciklama)
+                 ON DUPLICATE KEY UPDATE ayar_degeri = VALUES(ayar_degeri), aciklama = VALUES(aciklama)"
+            );
+
             foreach($updates as $key => $val) {
-                $stmt = $pdo->prepare("UPDATE sistem_ayarlari SET ayar_degeri = ? WHERE ayar_adi = ?");
-                $stmt->execute([$val, $key]);
+                $stmt->execute([
+                    'ayar_adi' => $key,
+                    'ayar_degeri' => $val,
+                    'aciklama' => $settings_meta[$key] ?? ''
+                ]);
             }
 
             $pdo->commit();
@@ -62,7 +81,7 @@ include_once __DIR__ . '/../templates/admin_header.php';
                     </div>
                     <div>
                         <h5 class="fw-bold mb-0">Genel Kontrol Merkezi</h5>
-                        <p class="mb-0 small opacity-75">Sınav puanlama ve hesaplama motoru ayarları</p>
+                        <p class="mb-0 small opacity-75">Puanlama parametreleri ve site bakım modu ayarları</p>
                     </div>
                 </div>
             </div>
@@ -95,6 +114,22 @@ include_once __DIR__ . '/../templates/admin_header.php';
                                    value="<?php echo $settings['PUAN_CARPANI']['ayar_degeri'] ?? 2; ?>" required>
                         </div>
                         <div class="form-text small"><?php echo $settings['PUAN_CARPANI']['aciklama'] ?? ''; ?></div>
+                    </div>
+
+                    <div class="mb-5">
+                        <div class="p-4 border rounded-4 bg-light">
+                            <div class="d-flex justify-content-between align-items-center gap-3">
+                                <div>
+                                    <label class="form-label fw-bold text-dark mb-1 d-block">Site Bakım Modu</label>
+                                    <div class="small text-muted">
+                                        Aktif olduğunda sadece denemeags.com ön yüzü kapanır. Admin ve yazar paneli açık kalır.
+                                    </div>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="siteMaintenanceMode" name="site_maintenance_mode" value="1" <?php echo $is_maintenance_mode_enabled ? 'checked' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="alert alert-warning border-0 rounded-4 small mb-4 py-3">

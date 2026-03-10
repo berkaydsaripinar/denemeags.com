@@ -16,10 +16,6 @@ class ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca
         array (
             'setasign\\Fpdi\\' => 14,
         ),
-        'S' => 
-        array (
-            'Shopier\\' => 8,
-        ),
         'P' => 
         array (
             'Psr\\Log\\' => 8,
@@ -42,10 +38,6 @@ class ComposerStaticInitc004b5c00ab3a45577e3c1de5e34acca
         'setasign\\Fpdi\\' => 
         array (
             0 => __DIR__ . '/..' . '/setasign/fpdi/src',
-        ),
-        'Shopier\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/erkineren/shopier/src',
         ),
         'Psr\\Log\\' => 
         array (

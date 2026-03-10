@@ -19,15 +19,6 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'erkineren/shopier' => array(
-            'pretty_version' => 'v0.3.1',
-            'version' => '0.3.1.0',
-            'reference' => '89637f5e7baab1bbf441b02e24b1c5b79bb86acc',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../erkineren/shopier',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
         'mpdf/mpdf' => array(
             'pretty_version' => 'v8.2.7',
             'version' => '8.2.7.0',

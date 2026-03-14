@@ -57,6 +57,15 @@ $mailFromAddress = getenv('MAIL_FROM_ADDRESS') ?: 'noreply@denemeags.com';
 $mailReplyTo = getenv('MAIL_REPLY_TO') ?: 'support@denemeags.com';
 $appDebug = getenv('APP_DEBUG');
 
+$paytrLocal = [];
+$paytrLocalFile = $appRoot . '/paytr.local.php';
+if (is_readable($paytrLocalFile)) {
+    $loadedPaytr = require $paytrLocalFile;
+    if (is_array($loadedPaytr)) {
+        $paytrLocal = $loadedPaytr;
+    }
+}
+
 if ($appDebug === false || $appDebug === '') {
     $appDebug = '1';
 }
@@ -92,16 +101,16 @@ define('TMP_DIR', APP_ROOT . '/tmp');
 define('CACHE_DIR', APP_ROOT . '/cache');
 define('WEBHOOK_LOG_FILE', APP_ROOT . '/webhook_debug.txt');
 
-// PAYTR Ayarları (ENV üzerinden okunur)
-define('PAYTR_MERCHANT_ID', getenv('PAYTR_MERCHANT_ID') ?: '');
-define('PAYTR_MERCHANT_KEY', getenv('PAYTR_MERCHANT_KEY') ?: '');
-define('PAYTR_MERCHANT_SALT', getenv('PAYTR_MERCHANT_SALT') ?: '');
-define('PAYTR_TEST_MODE', getenv('PAYTR_TEST_MODE') ?: '0');
-define('PAYTR_DEBUG_ON', getenv('PAYTR_DEBUG_ON') ?: '1');
-define('PAYTR_TIMEOUT_LIMIT', getenv('PAYTR_TIMEOUT_LIMIT') ?: '30');
-define('PAYTR_NO_INSTALLMENT', getenv('PAYTR_NO_INSTALLMENT') ?: '0');
-define('PAYTR_MAX_INSTALLMENT', getenv('PAYTR_MAX_INSTALLMENT') ?: '0');
-define('PAYTR_CURRENCY', getenv('PAYTR_CURRENCY') ?: 'TL');
+// PAYTR Ayarları (ENV öncelikli, yoksa paytr.local.php)
+define('PAYTR_MERCHANT_ID', getenv('PAYTR_MERCHANT_ID') ?: (string) ($paytrLocal['PAYTR_MERCHANT_ID'] ?? ''));
+define('PAYTR_MERCHANT_KEY', getenv('PAYTR_MERCHANT_KEY') ?: (string) ($paytrLocal['PAYTR_MERCHANT_KEY'] ?? ''));
+define('PAYTR_MERCHANT_SALT', getenv('PAYTR_MERCHANT_SALT') ?: (string) ($paytrLocal['PAYTR_MERCHANT_SALT'] ?? ''));
+define('PAYTR_TEST_MODE', getenv('PAYTR_TEST_MODE') ?: (string) ($paytrLocal['PAYTR_TEST_MODE'] ?? '0'));
+define('PAYTR_DEBUG_ON', getenv('PAYTR_DEBUG_ON') ?: (string) ($paytrLocal['PAYTR_DEBUG_ON'] ?? '1'));
+define('PAYTR_TIMEOUT_LIMIT', getenv('PAYTR_TIMEOUT_LIMIT') ?: (string) ($paytrLocal['PAYTR_TIMEOUT_LIMIT'] ?? '30'));
+define('PAYTR_NO_INSTALLMENT', getenv('PAYTR_NO_INSTALLMENT') ?: (string) ($paytrLocal['PAYTR_NO_INSTALLMENT'] ?? '0'));
+define('PAYTR_MAX_INSTALLMENT', getenv('PAYTR_MAX_INSTALLMENT') ?: (string) ($paytrLocal['PAYTR_MAX_INSTALLMENT'] ?? '0'));
+define('PAYTR_CURRENCY', getenv('PAYTR_CURRENCY') ?: (string) ($paytrLocal['PAYTR_CURRENCY'] ?? 'TL'));
 define('VIDEO_STREAM_SECRET', getenv('VIDEO_STREAM_SECRET') ?: 'change-this-secret');
 define('PDF_SIGNATURE_SECRET', getenv('PDF_SIGNATURE_SECRET') ?: VIDEO_STREAM_SECRET);
 

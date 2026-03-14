@@ -161,6 +161,11 @@ require_once __DIR__ . '/../includes/functions.php';
                 <li class="nav-item">
                     <a class="nav-link" href="<?php echo BASE_URL; ?>/yazarlar.php">Yazarlar İçin</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="<?php echo BASE_URL; ?>/influencer/<?php echo isInfluencerLoggedIn() ? 'dashboard.php' : 'login.php'; ?>">
+                        <i class="fas fa-bullhorn me-1"></i> Influencer
+                    </a>
+                </li>
                 
                 <?php if (isLoggedIn()): ?>
                     <!-- Giriş Yapmış Kullanıcı -->

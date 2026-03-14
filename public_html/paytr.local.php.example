@@ -1,0 +1,15 @@
+<?php
+// Bu dosyayi paytr.local.php olarak kopyalayip degerlerinizi girin.
+// Not: Gercek dosyayi (paytr.local.php) git'e eklemeyin.
+
+return [
+    'PAYTR_MERCHANT_ID' => 'XXXXXX',
+    'PAYTR_MERCHANT_KEY' => 'YYYYYYYYYYYYYY',
+    'PAYTR_MERCHANT_SALT' => 'ZZZZZZZZZZZZZZ',
+    'PAYTR_TEST_MODE' => '0',
+    'PAYTR_DEBUG_ON' => '1',
+    'PAYTR_TIMEOUT_LIMIT' => '30',
+    'PAYTR_NO_INSTALLMENT' => '0',
+    'PAYTR_MAX_INSTALLMENT' => '0',
+    'PAYTR_CURRENCY' => 'TL',
+];

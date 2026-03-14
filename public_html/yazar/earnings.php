@@ -13,6 +13,9 @@ $fin = [
 ];
 $odenebilir = 0;
 $sales = [];
+$nextPayoutDate = get_next_biweekly_payout_date();
+$cutoffDate = get_next_payout_cutoff_datetime();
+$cutoffSql = $cutoffDate->format('Y-m-d H:i:s');
 
 // --- VERİ ÇEKME ---
 try {
@@ -21,11 +24,11 @@ try {
         SELECT 
             COALESCE(SUM(yazar_payi), 0) as toplam_brut,
             (SELECT COALESCE(SUM(tutar), 0) FROM yazar_odemeleri WHERE yazar_id = ?) as toplam_odenmis,
-            (SELECT COALESCE(SUM(yazar_payi), 0) FROM satis_loglari WHERE yazar_id = ? AND (yazar_odeme_durumu IS NULL OR yazar_odeme_durumu = 'beklemede') AND tarih <= DATE_SUB(NOW(), INTERVAL 14 DAY)) as odenebilir,
-            (SELECT COALESCE(SUM(yazar_payi), 0) FROM satis_loglari WHERE yazar_id = ? AND (yazar_odeme_durumu IS NULL OR yazar_odeme_durumu = 'beklemede') AND tarih > DATE_SUB(NOW(), INTERVAL 14 DAY)) as bekleyen_hakedis
+            (SELECT COALESCE(SUM(yazar_payi), 0) FROM satis_loglari WHERE yazar_id = ? AND (yazar_odeme_durumu IS NULL OR yazar_odeme_durumu = 'beklemede') AND tarih <= ?) as odenebilir,
+            (SELECT COALESCE(SUM(yazar_payi), 0) FROM satis_loglari WHERE yazar_id = ? AND (yazar_odeme_durumu IS NULL OR yazar_odeme_durumu = 'beklemede') AND tarih > ?) as bekleyen_hakedis
         FROM satis_loglari WHERE yazar_id = ?
     ");
-$stmt_summary->execute([$yid, $yid, $yid, $yid]);
+$stmt_summary->execute([$yid, $yid, $cutoffSql, $yid, $cutoffSql, $yid]);
 $db_fin = $stmt_summary->fetch();
     
     if ($db_fin) {
@@ -58,10 +61,12 @@ $db_fin = $stmt_summary->fetch();
 <div class="d-flex justify-content-between align-items-center mb-5 fade-in">
     <div>
         <h2 class="fw-bold text-dark mb-1">Finansal Durum</h2>
-        <p class="text-muted mb-0">Hakedişleriniz satış tarihinden 14 gün sonra otomatik ödeme listesine alınır.</p>
+        <p class="text-muted mb-0">Ödeme döngüsü: 2 haftada bir Cumartesi. Cuma 23:59'a kadar oluşan hakedişler dahil edilir.</p>
     </div>
     <div class="text-end">
-        <span class="badge bg-success-subtle text-success px-3 py-2">Otomatik Ödeme Aktif</span>
+        <span class="badge bg-success-subtle text-success px-3 py-2">
+            Sonraki ödeme: <?php echo $nextPayoutDate->format('d.m.Y'); ?>
+        </span>
     </div>
 </div>
 
@@ -74,7 +79,7 @@ $db_fin = $stmt_summary->fetch();
                 <div class="bg-success bg-opacity-10 text-success p-2 rounded-3"><i class="fas fa-wallet"></i></div>
             </div>
             <h2 class="fw-black text-dark mb-1"><?php echo number_format($odenebilir, 2, ',', '.'); ?> ₺</h2>
-            <p class="text-muted small mb-0">14 gününü dolduran hakedişleriniz.</p>
+            <p class="text-muted small mb-0">Bu ödeme döngüsünde (<?php echo $cutoffDate->format('d.m.Y H:i'); ?> kapanışına kadar) dahil edilecek tutar.</p>
         </div>
     </div>
     <div class="col-md-4">
@@ -94,7 +99,7 @@ $db_fin = $stmt_summary->fetch();
                 <div class="bg-warning bg-opacity-10 text-warning p-2 rounded-3"><i class="fas fa-clock"></i></div>
             </div>
             <h2 class="fw-bold text-dark mb-1"><?php echo number_format((float)$fin['bekleyen_hakedis'], 2, ',', '.'); ?> ₺</h2>
-            <p class="text-muted small mb-0">14 gününü doldurması beklenen tutar.</p>
+            <p class="text-muted small mb-0">Bir sonraki döngüye kalacak hakedişler.</p>
         </div>
     </div>
 </div>
@@ -108,7 +113,8 @@ $db_fin = $stmt_summary->fetch();
             </div>
             <div class="card-body p-4">
                 <div class="alert alert-info mb-0">
-                    Hakedişleriniz satış tarihinden 14 gün sonra ödeme listesine alınır. Ödemeler, belirlenen periyotlarda otomatik olarak işlenir ve IBAN hesabınıza aktarılır.
+                    Sonraki ödeme tarihi: <strong><?php echo $nextPayoutDate->format('d.m.Y (Cumartesi)'); ?></strong>.
+                    Bu ödeme için kapanış zamanı: <strong><?php echo $cutoffDate->format('d.m.Y H:i'); ?></strong>.
                 </div>
             </div>
         </div>

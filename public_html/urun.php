@@ -44,11 +44,14 @@ include_once __DIR__ . '/templates/header.php';
             
             <div class="bg-white p-4 rounded-4 shadow-sm border mb-4">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h2 class="fw-bold text-primary mb-0"><?php echo number_format($urun['fiyat'], 2); ?> ₺</h2>
+                    <h2 class="fw-bold text-primary mb-0"><?php echo number_format((float) $urun['fiyat'], 2); ?> TL + KDV</h2>
                     <?php if($has_access): ?>
                         <a href="dashboard.php" class="btn btn-success btn-lg rounded-pill px-5 fw-bold">KÜTÜPHANEMDE VAR</a>
                     <?php else: ?>
-                        <a href="checkout.php?id=<?php echo $urun['id']; ?>" target="_blank" rel="noopener" class="btn btn-warning btn-lg rounded-pill px-5 fw-bold text-dark">HEMEN SATIN AL</a>
+                        <div class="d-flex gap-2">
+                            <a href="cart_action.php?action=add&id=<?php echo $urun['id']; ?>" class="btn btn-warning btn-lg rounded-pill px-4 fw-bold text-dark">SEPETE EKLE</a>
+                            <a href="cart.php" class="btn btn-outline-primary btn-lg rounded-pill px-4 fw-bold">SEPETİM</a>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>

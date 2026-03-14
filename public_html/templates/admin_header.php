@@ -166,8 +166,14 @@ $is_logged_in = isAdminLoggedIn();
             <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'manage_denemeler.php' || basename($_SERVER['PHP_SELF']) == 'edit_deneme.php' || basename($_SERVER['PHP_SELF']) == 'manage_cevaplar.php') ? 'active' : ''; ?>">
                 <a href="manage_denemeler.php"><i class="fas fa-book"></i> Yayınlar / Ürünler</a>
             </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_paketler.php' ? 'active' : ''; ?>">
+                <a href="manage_paketler.php"><i class="fas fa-box-open"></i> Paket Yönetimi</a>
+            </li>
             <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_kodlar.php' ? 'active' : ''; ?>">
                 <a href="manage_kodlar.php"><i class="fas fa-key"></i> Erişim Kodları</a>
+            </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_indirim_kodlari.php' ? 'active' : ''; ?>">
+                <a href="manage_indirim_kodlari.php"><i class="fas fa-percent"></i> İndirim Kodları</a>
             </li>
             <!-- YENİ: Sınav Sonuçları Menüsü -->
             <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'view_all_results.php' ? 'active' : ''; ?>">
@@ -175,6 +181,24 @@ $is_logged_in = isAdminLoggedIn();
             </li>
 
             <div class="menu-label">SATIŞ & YAZAR</div>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'accounting_dashboard.php' ? 'active' : ''; ?>">
+                <a href="accounting_dashboard.php"><i class="fas fa-calculator"></i> Muhasebe</a>
+            </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'accounting_ledger.php' ? 'active' : ''; ?>">
+                <a href="accounting_ledger.php"><i class="fas fa-book-open"></i> Finans Defteri</a>
+            </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'profit_loss.php' ? 'active' : ''; ?>">
+                <a href="profit_loss.php"><i class="fas fa-chart-line"></i> Kar / Zarar</a>
+            </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'cashflow.php' ? 'active' : ''; ?>">
+                <a href="cashflow.php"><i class="fas fa-water"></i> Nakit Akışı</a>
+            </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_expenses.php' ? 'active' : ''; ?>">
+                <a href="manage_expenses.php"><i class="fas fa-file-invoice-dollar"></i> Giderler</a>
+            </li>
+            <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_payout_batches.php' ? 'active' : ''; ?>">
+                <a href="manage_payout_batches.php"><i class="fas fa-layer-group"></i> Ödeme Batchleri</a>
+            </li>
             <li class="<?php echo basename($_SERVER['PHP_SELF']) == 'manage_satislar.php' ? 'active' : ''; ?>">
                 <a href="manage_satislar.php"><i class="fas fa-shopping-cart"></i> Siparişler / Loglar</a>
             </li>

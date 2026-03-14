@@ -492,4 +492,233 @@ function get_image_url($url) {
     return escape_html(app_url('uploads/products/' . basename($trimmed)));
 }
 
+function get_vat_rate(): float
+{
+    return 0.20;
+}
+
+function get_cart_session_items(): array
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $items = $_SESSION['cart_items'] ?? [];
+    if (!is_array($items)) {
+        return [];
+    }
+
+    $normalized = [];
+    foreach ($items as $itemId) {
+        $id = (int) $itemId;
+        if ($id > 0) {
+            $normalized[] = $id;
+        }
+    }
+
+    return array_values(array_unique($normalized));
+}
+
+function get_cart_bundle_session_items(): array
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $items = $_SESSION['cart_bundle_items'] ?? [];
+    if (!is_array($items)) {
+        return [];
+    }
+
+    $normalized = [];
+    foreach ($items as $itemId) {
+        $id = (int) $itemId;
+        if ($id > 0) {
+            $normalized[] = $id;
+        }
+    }
+
+    return array_values(array_unique($normalized));
+}
+
+function add_to_cart(int $productId): void
+{
+    if ($productId <= 0) {
+        return;
+    }
+
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $items = get_cart_session_items();
+    $items[] = $productId;
+    $_SESSION['cart_items'] = array_values(array_unique($items));
+}
+
+function add_bundle_to_cart(int $bundleId): void
+{
+    if ($bundleId <= 0) {
+        return;
+    }
+
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $items = get_cart_bundle_session_items();
+    $items[] = $bundleId;
+    $_SESSION['cart_bundle_items'] = array_values(array_unique($items));
+}
+
+function remove_from_cart(int $productId): void
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $items = get_cart_session_items();
+    $_SESSION['cart_items'] = array_values(array_filter($items, function ($id) use ($productId) {
+        return (int) $id !== (int) $productId;
+    }));
+}
+
+function remove_bundle_from_cart(int $bundleId): void
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $items = get_cart_bundle_session_items();
+    $_SESSION['cart_bundle_items'] = array_values(array_filter($items, function ($id) use ($bundleId) {
+        return (int) $id !== (int) $bundleId;
+    }));
+}
+
+function clear_cart(): void
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $_SESSION['cart_items'] = [];
+    $_SESSION['cart_bundle_items'] = [];
+    $_SESSION['cart_coupon'] = null;
+}
+
+function get_cart_count(): int
+{
+    return count(get_cart_session_items()) + count(get_cart_bundle_session_items());
+}
+
+function get_next_biweekly_payout_date(?DateTimeImmutable $now = null): DateTimeImmutable
+{
+    $tz = new DateTimeZone('Europe/Istanbul');
+    $now = $now ? $now->setTimezone($tz) : new DateTimeImmutable('now', $tz);
+
+    // Referans tarih: 03.01.2026 Cumartesi (2 haftalık döngü başlangıcı)
+    $anchor = new DateTimeImmutable('2026-01-03 00:00:00', $tz);
+    $daysDiff = (int) $anchor->diff($now)->format('%r%a');
+
+    if ($daysDiff <= 0) {
+        return $anchor;
+    }
+
+    $cycle = 14;
+    $offset = $daysDiff % $cycle;
+    $nextInDays = $offset === 0 ? 0 : ($cycle - $offset);
+    $candidate = $now->setTime(0, 0)->modify('+' . $nextInDays . ' days');
+
+    return $candidate;
+}
+
+function get_next_payout_cutoff_datetime(?DateTimeImmutable $now = null): DateTimeImmutable
+{
+    $nextPayout = get_next_biweekly_payout_date($now);
+    return $nextPayout->modify('-1 day')->setTime(23, 59, 59);
+}
+
+function set_cart_coupon(array $coupon): void
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $_SESSION['cart_coupon'] = $coupon;
+}
+
+function get_cart_coupon(): ?array
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $coupon = $_SESSION['cart_coupon'] ?? null;
+    return is_array($coupon) ? $coupon : null;
+}
+
+function clear_cart_coupon(): void
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    unset($_SESSION['cart_coupon']);
+}
+
+function isInfluencerLoggedIn(): bool
+{
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    return isset($_SESSION['influencer_logged_in']) && $_SESSION['influencer_logged_in'] === true && isset($_SESSION['influencer_id']);
+}
+
+function requireInfluencerLogin(): void
+{
+    if (!isInfluencerLoggedIn()) {
+        set_flash_message('warning', 'Bu sayfayı görüntülemek için influencer girişi yapmalısınız.');
+        redirect('influencer/login.php');
+    }
+}
+
+function find_active_discount_code(PDO $pdo, string $code): ?array
+{
+    $normalized = strtoupper(trim($code));
+    if ($normalized === '') {
+        return null;
+    }
+
+    try {
+        $stmt = $pdo->prepare("
+            SELECT k.*, i.ad_soyad AS influencer_adi
+            FROM indirim_kodlari k
+            LEFT JOIN influencers i ON i.id = k.influencer_id
+            WHERE k.kod = ?
+              AND k.aktif_mi = 1
+              AND (k.baslangic_tarihi IS NULL OR k.baslangic_tarihi <= NOW())
+              AND (k.bitis_tarihi IS NULL OR k.bitis_tarihi >= NOW())
+            LIMIT 1
+        ");
+        $stmt->execute([$normalized]);
+        $coupon = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$coupon) {
+            return null;
+        }
+
+        if (!empty($coupon['max_kullanim'])) {
+            $stmtCount = $pdo->prepare('SELECT COUNT(*) FROM indirim_kodu_kullanimlari WHERE kod_id = ?');
+            $stmtCount->execute([(int) $coupon['id']]);
+            $usage = (int) $stmtCount->fetchColumn();
+            if ($usage >= (int) $coupon['max_kullanim']) {
+                return null;
+            }
+        }
+
+        return $coupon;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
 ?>

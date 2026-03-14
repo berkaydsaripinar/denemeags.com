@@ -12,13 +12,104 @@ $verification = null;
 $error = null;
 $warning = null;
 $info_messages = [];
+$csrf_token = generate_csrf_token();
 
 // Yükleme limiti ayarları (Gerekirse)
 ini_set('upload_max_filesize', '20M');
 ini_set('post_max_size', '20M');
 
+function verify_get_client_ip(): string
+{
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        return (string) $_SERVER['HTTP_CF_CONNECTING_IP'];
+    }
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR']);
+        return trim((string) ($parts[0] ?? ''));
+    }
+    return (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+}
+
+function verify_rate_limit_exceeded(string $ip, int $maxAttempts = 15, int $windowSeconds = 900): bool
+{
+    $file = TMP_DIR . '/verify_pdf_rate_limit.json';
+    if (!is_dir(TMP_DIR)) {
+        @mkdir(TMP_DIR, 0775, true);
+    }
+
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return false;
+    }
+
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return false;
+    }
+
+    $now = time();
+    $raw = stream_get_contents($fp);
+    $data = json_decode($raw ?: '{}', true);
+    if (!is_array($data)) {
+        $data = [];
+    }
+
+    foreach ($data as $storedIp => $timestamps) {
+        if (!is_array($timestamps)) {
+            unset($data[$storedIp]);
+            continue;
+        }
+        $data[$storedIp] = array_values(array_filter($timestamps, function ($t) use ($now, $windowSeconds) {
+            return is_int($t) && ($now - $t) <= $windowSeconds;
+        }));
+        if (empty($data[$storedIp])) {
+            unset($data[$storedIp]);
+        }
+    }
+
+    $attempts = $data[$ip] ?? [];
+    if (count($attempts) >= $maxAttempts) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return true;
+    }
+
+    $attempts[] = $now;
+    $data[$ip] = $attempts;
+
+    ftruncate($fp, 0);
+    rewind($fp);
+    fwrite($fp, json_encode($data));
+    fflush($fp);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    return false;
+}
+
+function decode_urlsafe_b64(string $value): ?string
+{
+    $normalized = strtr($value, '-_', '+/');
+    $mod = strlen($normalized) % 4;
+    if ($mod > 0) {
+        $normalized .= str_repeat('=', 4 - $mod);
+    }
+
+    $decoded = base64_decode($normalized, true);
+    return $decoded === false ? null : $decoded;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK) {
+    if (!isset($_POST['csrf_token']) || !verify_csrf_token((string) $_POST['csrf_token'])) {
+        $error = 'Güvenlik doğrulaması başarısız (CSRF). Lütfen tekrar deneyin.';
+    } else {
+        $clientIp = verify_get_client_ip();
+        if (verify_rate_limit_exceeded($clientIp)) {
+            $error = 'Çok fazla doğrulama denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.';
+        }
+    }
+
+    if ($error === null && (!isset($_FILES['pdf_file']) || $_FILES['pdf_file']['error'] !== UPLOAD_ERR_OK)) {
         $uploadErrors = [
             UPLOAD_ERR_INI_SIZE => 'Dosya boyutu sunucu limitini aşıyor.',
             UPLOAD_ERR_FORM_SIZE => 'Dosya boyutu form limitini aşıyor.',
@@ -26,17 +117,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             UPLOAD_ERR_NO_FILE => 'Dosya seçilmedi.',
         ];
         $error = $uploadErrors[$_FILES['pdf_file']['error']] ?? 'Bilinmeyen bir yükleme hatası oluştu.';
-    } else {
+    } elseif ($error === null) {
         $tmpPath = $_FILES['pdf_file']['tmp_name'];
+        $fileSize = (int) ($_FILES['pdf_file']['size'] ?? 0);
+        $maxSize = 20 * 1024 * 1024;
+        if ($fileSize <= 0 || $fileSize > $maxSize) {
+            $error = 'PDF boyutu geçersiz. Maksimum 20MB olmalıdır.';
+        }
         
         // Mime Type Kontrolü
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mimeType = finfo_file($finfo, $tmpPath);
-        finfo_close($finfo);
+        if ($error === null) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mimeType = finfo_file($finfo, $tmpPath);
+            finfo_close($finfo);
 
-        if ($mimeType !== 'application/pdf') {
-            $error = 'Yüklenen dosya geçerli bir PDF değil. (Algılanan tür: ' . htmlspecialchars($mimeType) . ')';
-        } else {
+            if ($mimeType !== 'application/pdf' && $mimeType !== 'application/octet-stream') {
+                $error = 'Yüklenen dosya geçerli bir PDF değil. (Algılanan tür: ' . htmlspecialchars((string) $mimeType) . ')';
+            }
+        }
+
+        if ($error === null) {
+            $fh = fopen($tmpPath, 'rb');
+            $header = $fh ? fread($fh, 5) : '';
+            if ($fh) {
+                fclose($fh);
+            }
+            if ($header !== '%PDF-') {
+                $error = 'Dosya PDF imzası taşımıyor (%PDF-).';
+            }
+        }
+
+        if ($error === null) {
             // Dosyayı belleğe oku
             $pdfContents = file_get_contents($tmpPath);
             
@@ -64,13 +175,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = 'KRİTİK GÜVENLİK UYARISI: Dosya içinde bir imza bulundu ancak imza GEÇERSİZ! Biri sahte imza üretmeye çalışmış olabilir.';
                     } else {
                         // İmza geçerli, içeriği çöz
-                        // URL Safe Base64 decode işlemi
-                        $payloadB64Padded = strtr($payloadB64, '-_', '+/');
-                        $payloadB64Padded = str_pad($payloadB64Padded, strlen($payloadB64Padded) % 4, '=', STR_PAD_RIGHT);
-                        $jsonStr = base64_decode($payloadB64Padded);
+                        $jsonStr = decode_urlsafe_b64($payloadB64);
                         $payload = json_decode($jsonStr, true);
 
-                        if (!is_array($payload) || empty($payload['document_id'])) {
+                        if (!is_array($payload) || empty($payload['document_id']) || empty($payload['user_id']) || empty($payload['deneme_id'])) {
                             $error = 'İmza verisi bozuk veya okunamıyor.';
                         } else {
                             // --- STRATEJİ 3: VERİTABANI ÇAPRAZ KONTROLÜ ---
@@ -86,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $deneme = $stmtDeneme->fetch(PDO::FETCH_ASSOC);
 
                             // 3. Log Kaydını Bul (Orijinal Hash burada saklı)
-                            $stmtLog = $pdo->prepare("SELECT * FROM pdf_logs WHERE document_id = ?");
+                            $stmtLog = $pdo->prepare("SELECT * FROM pdf_logs WHERE document_id = ? LIMIT 1");
                             $stmtLog->execute([$payload['document_id']]);
                             $logData = $stmtLog->fetch(PDO::FETCH_ASSOC);
                             
@@ -94,10 +202,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             // Yüklenen dosyanın şimdiki hash'i
                             $currentPdfHash = hash('sha256', $pdfContents);
                             $isOriginal = false;
+                            $logMatchesPayload = false;
+                            $payloadHashMatch = true;
+
+                            if (isset($payload['file_hash']) && is_string($payload['file_hash']) && preg_match('/^[a-f0-9]{64}$/', $payload['file_hash'])) {
+                                $payloadHashMatch = hash_equals($payload['file_hash'], $currentPdfHash);
+                            }
 
                             // Veritabanındaki orijinal hash ile karşılaştır
                             if ($logData && hash_equals($logData['file_hash'], $currentPdfHash)) {
                                 $isOriginal = true;
+                            }
+
+                            if ($logData) {
+                                $logUserOk = !isset($logData['user_id']) || (int) $logData['user_id'] === (int) $payload['user_id'];
+                                $logDenemeOk = !isset($logData['deneme_id']) || (int) $logData['deneme_id'] === (int) $payload['deneme_id'];
+                                $logMatchesPayload = $logUserOk && $logDenemeOk;
                             }
 
                             // Doğrulama Sonuçlarını Diziye At
@@ -106,13 +226,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'deneme' => $deneme,
                                 'log_data' => $logData,
                                 'is_original' => $isOriginal,
+                                'payload_hash_match' => $payloadHashMatch,
+                                'log_matches_payload' => $logMatchesPayload,
                                 'document_id' => $payload['document_id'],
-                                'issued_at' => $payload['issued_at'], // Oluşturulma tarihi
+                                'issued_at' => $payload['issued_at'] ?? null, // Oluşturulma tarihi
                                 'type' => $payload['type'] ?? 'Bilinmiyor'
                             ];
 
                             // --- SONUÇ MESAJLARINI OLUŞTUR ---
-                            if ($isOriginal) {
+                            if (!$payloadHashMatch) {
+                                $error = 'KRİTİK UYARI: İmza içindeki file_hash ile dosya hash değeri uyuşmuyor.';
+                            } elseif ($isOriginal && $logMatchesPayload) {
                                 $info_messages[] = ['type' => 'success', 'msg' => '<strong>MÜKEMMEL:</strong> Dosya %100 orijinal. Byte düzeyinde hiçbir değişiklik yapılmamış.'];
                             } else {
                                 $warning = 'DİKKAT: Dosya Bütünlüğü Bozulmuş!';
@@ -121,6 +245,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 
                                 if ($user) {
                                     $info_messages[] = ['type' => 'info', 'msg' => 'ANCAK: <strong>Metadata veya Gizli İmzalar</strong> sayesinde dosya sahibinin kimliği tespit edildi.'];
+                                }
+                                if (!$logMatchesPayload) {
+                                    $info_messages[] = ['type' => 'danger', 'msg' => 'Log kaydı ile imza payload bilgileri tam eşleşmiyor. Sahte ilişkilendirme denemesi olabilir.'];
                                 }
                             }
                         }
@@ -240,7 +367,12 @@ include_once __DIR__ . '/templates/header.php';
                                 
                                 <li class="list-group-item d-flex justify-content-between">
                                     <span><strong>Oluşturulma Tarihi:</strong></span>
-                                    <span><?php echo date('d.m.Y H:i', strtotime($verification['issued_at'])); ?></span>
+                                    <span>
+                                        <?php
+                                            $issuedAt = $verification['issued_at'] ?? null;
+                                            echo $issuedAt ? date('d.m.Y H:i', strtotime((string) $issuedAt)) : 'Kayıt Yok';
+                                        ?>
+                                    </span>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between">
                                     <span><strong>İndiren IP Adresi:</strong></span>
@@ -262,6 +394,7 @@ include_once __DIR__ . '/templates/header.php';
                         </div>
 
                         <form method="post" enctype="multipart/form-data" id="uploadForm">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                             <input type="file" class="d-none" id="pdf_file" name="pdf_file" accept="application/pdf">
                             
                             <label class="upload-area p-5 rounded-3 text-center w-100 cursor-pointer" id="uploadLabel" for="pdf_file">

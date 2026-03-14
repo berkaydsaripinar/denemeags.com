@@ -32,8 +32,23 @@ try {
     ");
     $recent_sales = $stmt_recent->fetchAll();
 
+    $finance_stmt = $pdo->query("
+        SELECT
+            COALESCE(SUM(CASE WHEN hareket_tipi = 'platform_revenue' AND DATE_FORMAT(hareket_tarihi, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m') THEN CASE WHEN yon = 'in' THEN tutar ELSE -tutar END ELSE 0 END), 0) AS month_net,
+            COALESCE(SUM(CASE WHEN hareket_tipi = 'vat' AND DATE_FORMAT(hareket_tarihi, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m') THEN tutar ELSE 0 END), 0) AS month_vat,
+            COALESCE((SELECT SUM(toplam_tutar) FROM odeme_batchleri WHERE durum = 'draft'), 0) AS draft_batches
+        FROM muhasebe_hareketleri
+    ");
+    $finance = $finance_stmt->fetch(PDO::FETCH_ASSOC);
+    $month_net = (float) ($finance['month_net'] ?? 0);
+    $month_vat = (float) ($finance['month_vat'] ?? 0);
+    $draft_batches = (float) ($finance['draft_batches'] ?? 0);
+
 } catch (PDOException $e) {
     error_log("Dashboard Veri Hatası: " . $e->getMessage());
+    $month_net = 0;
+    $month_vat = 0;
+    $draft_batches = 0;
 }
 
 include_once __DIR__ . '/../templates/admin_header.php';
@@ -69,6 +84,33 @@ include_once __DIR__ . '/../templates/admin_header.php';
                 <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="fas fa-book"></i></div>
                 <div class="text-muted small fw-bold">AKTİF YAYINLAR</div>
                 <div class="h3 fw-bold mb-0"><?php echo $active_denemeler; ?></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+                    <div class="text-muted small fw-bold">BU AY PLATFORM NETİ</div>
+                    <div class="h3 fw-bold text-primary mb-0"><?php echo number_format($month_net, 2); ?> ₺</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+                    <div class="text-muted small fw-bold">BU AY KDV YÜKÜ</div>
+                    <div class="h3 fw-bold text-danger mb-0"><?php echo number_format($month_vat, 2); ?> ₺</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body">
+                    <div class="text-muted small fw-bold">AÇIK BATCH YÜKÜ</div>
+                    <div class="h4 fw-bold text-warning mb-0"><?php echo number_format($draft_batches, 2); ?> ₺</div>
+                </div>
             </div>
         </div>
     </div>
@@ -130,6 +172,11 @@ include_once __DIR__ . '/../templates/admin_header.php';
                         <a href="generate_codes.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Toplu Kod Üret</a>
                         <a href="manage_duyurular.php" class="btn btn-light py-2 border text-start"><i class="fas fa-bullhorn me-2"></i> Duyuru Yayınla</a>
                         <a href="webhook_logs.php" class="btn btn-light py-2 border text-start"><i class="fas fa-bullhorn me-2"></i> PAYTR Logları</a>
+                        <a href="accounting_dashboard.php" class="btn btn-light py-2 border text-start"><i class="fas fa-calculator me-2"></i> Muhasebe Dashboard</a>
+                        <a href="manage_payout_batches.php" class="btn btn-light py-2 border text-start"><i class="fas fa-layer-group me-2"></i> Ödeme Batchleri</a>
+                        <a href="profit_loss.php" class="btn btn-light py-2 border text-start"><i class="fas fa-chart-line me-2"></i> Kar / Zarar</a>
+                        <a href="cashflow.php" class="btn btn-light py-2 border text-start"><i class="fas fa-water me-2"></i> Nakit Akışı</a>
+                        <a href="manage_expenses.php" class="btn btn-light py-2 border text-start"><i class="fas fa-file-invoice-dollar me-2"></i> Gider Ekle</a>
                         <a href="product_stats.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Kod İstatistik</a>
                         <a href="generate_standard_codes.php" class="btn btn-light py-2 border text-start"><i class="fas fa-key me-2"></i> Standart Kod</a>
 

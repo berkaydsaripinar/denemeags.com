@@ -1,5 +1,5 @@
 <?php
-// admin/manage_yazar_odemeleri.php - 14 gününü dolduran hakedişler
+// admin/manage_yazar_odemeleri.php - takvim bazlı hakediş yönetimi
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db_connect.php';
 require_once __DIR__ . '/../includes/functions.php';
@@ -31,7 +31,16 @@ if (!in_array($filters['donem'], $valid_periods, true)) {
     $filters['donem'] = 'tum';
 }
 
+$nextPayoutDate = get_next_biweekly_payout_date();
+$cutoffDate = get_next_payout_cutoff_datetime();
+$cutoffSql = $cutoffDate->format('Y-m-d H:i:s');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_paid'])) {
+    if (!verify_admin_csrf_token($_POST['csrf_token'] ?? '')) {
+        set_admin_flash_message('error', 'CSRF doğrulaması başarısız.');
+        redirect('manage_yazar_odemeleri.php');
+    }
+
     $yazar_id = filter_input(INPUT_POST, 'yazar_id', FILTER_VALIDATE_INT);
     $sale_ids_raw = trim($_POST['sale_ids'] ?? '');
     $sale_ids = array_filter(array_map('intval', explode(',', $sale_ids_raw)));
@@ -53,9 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_paid'])) {
             WHERE yazar_id = ?
               AND id IN ($placeholders)
               AND (yazar_odeme_durumu IS NULL OR yazar_odeme_durumu = 'beklemede')
-              AND tarih <= DATE_SUB(NOW(), INTERVAL 14 DAY)
+              AND tarih <= ?
+              AND id NOT IN (
+                  SELECT obk.referans_id
+                  FROM odeme_batch_kalemleri obk
+                  JOIN odeme_batchleri ob ON ob.id = obk.batch_id
+                  WHERE obk.referans_tipi = 'sale_log'
+                    AND ob.durum <> 'cancelled'
+              )
         ");
-        $stmt_sales->execute($params);
+        $stmt_sales->execute(array_merge($params, [$cutoffSql]));
         $sales = $stmt_sales->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($sales)) {
@@ -67,19 +83,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_paid'])) {
         $total_payout = array_sum(array_column($sales, 'yazar_payi'));
         $sale_ids_confirmed = array_column($sales, 'id');
 
-        $stmt_pay = $pdo->prepare("INSERT INTO yazar_odemeleri (yazar_id, tutar, notlar) VALUES (?, ?, ?)");
-        $stmt_pay->execute([$yazar_id, $total_payout, 'Satış ID: ' . implode(',', $sale_ids_confirmed)]);
+        $batchItems = [];
+        foreach ($sales as $sale) {
+            $batchItems[] = [
+                'referans_tipi' => 'sale_log',
+                'referans_id' => (int) $sale['id'],
+                'yazar_id' => $yazar_id,
+                'tutar' => (float) $sale['yazar_payi'],
+                'aciklama' => 'Yazar hakedişi | Satış #' . (int) $sale['id'],
+            ];
+        }
 
-        $placeholders = implode(',', array_fill(0, count($sale_ids_confirmed), '?'));
-        $stmt_update = $pdo->prepare("
-            UPDATE satis_loglari
-            SET yazar_odeme_durumu = 'odendi', yazar_odeme_tarihi = NOW()
-            WHERE id IN ($placeholders)
-        ");
-        $stmt_update->execute($sale_ids_confirmed);
+        $batchId = create_payout_batch($pdo, [
+            'batch_tipi' => 'author',
+            'batch_adi' => 'Yazar Ödemesi - #' . $yazar_id . ' - ' . date('YmdHis'),
+            'durum' => 'draft',
+            'planlanan_odeme_tarihi' => $nextPayoutDate->format('Y-m-d'),
+            'notlar' => 'Yazar ödeme ekranından oluşturuldu. Satış ID: ' . implode(',', $sale_ids_confirmed),
+            'created_by_admin_id' => $_SESSION['admin_id'] ?? null,
+        ], $batchItems);
+
+        mark_payout_batch_paid($pdo, $batchId, (int) ($_SESSION['admin_id'] ?? 0));
 
         $pdo->commit();
-        set_admin_flash_message('success', 'Ödeme kaydı oluşturuldu ve satışlar güncellendi.');
+        set_admin_flash_message('success', 'Ödeme batch\'i oluşturuldu, muhasebe kaydı işlendi ve satışlar ödendi olarak güncellendi.');
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -111,10 +138,12 @@ try {
 
     if ($filters['donem'] === 'odenebilir') {
         $conditions[] = "COALESCE(sl.yazar_odeme_durumu, 'beklemede') = 'beklemede'";
-        $conditions[] = 'sl.tarih <= DATE_SUB(NOW(), INTERVAL 14 DAY)';
+        $conditions[] = 'sl.tarih <= ?';
+        $params[] = $cutoffSql;
     } elseif ($filters['donem'] === 'bekleyen') {
         $conditions[] = "COALESCE(sl.yazar_odeme_durumu, 'beklemede') = 'beklemede'";
-        $conditions[] = 'sl.tarih > DATE_SUB(NOW(), INTERVAL 14 DAY)';
+        $conditions[] = 'sl.tarih > ?';
+        $params[] = $cutoffSql;
     }
 
     $where_sql = '';
@@ -132,12 +161,16 @@ try {
             sl.tutar_brut,
             sl.tarih,
             sl.yazar_odeme_durumu,
+            ob.id AS batch_id,
+            ob.durum AS batch_durumu,
             y.ad_soyad AS yazar_adi,
             y.iban_bilgisi,
             d.deneme_adi
         FROM satis_loglari sl
         JOIN yazarlar y ON sl.yazar_id = y.id
         JOIN denemeler d ON sl.deneme_id = d.id
+        LEFT JOIN odeme_batch_kalemleri obk ON obk.referans_tipi = 'sale_log' AND obk.referans_id = sl.id
+        LEFT JOIN odeme_batchleri ob ON ob.id = obk.batch_id AND ob.durum <> 'cancelled'
         {$where_sql}
         ORDER BY y.ad_soyad ASC, sl.tarih ASC
     ");
@@ -158,8 +191,9 @@ $overall_totals = [
 foreach ($eligible_sales as $sale) {
     $author_id = $sale['yazar_id'];
     $status = $sale['yazar_odeme_durumu'] ?: 'beklemede';
-    $is_eligible = ($status === 'beklemede' && strtotime($sale['tarih']) <= strtotime('-14 days'));
-    $is_pending = ($status === 'beklemede' && !$is_eligible);
+    $is_batched = !empty($sale['batch_id']);
+    $is_eligible = ($status === 'beklemede' && !$is_batched && strtotime($sale['tarih']) <= strtotime($cutoffSql));
+    $is_pending = ($status === 'beklemede' && !$is_batched && !$is_eligible);
 
     if (!isset($sales_by_author[$author_id])) {
         $sales_by_author[$author_id] = [
@@ -174,7 +208,7 @@ foreach ($eligible_sales as $sale) {
         ];
     }
 
-    $sale['odeme_durumu'] = $status;
+    $sale['odeme_durumu'] = $is_batched ? 'batchte' : $status;
     $sale['odeme_uygun'] = $is_eligible;
 
     $sales_by_author[$author_id]['sales'][] = $sale;
@@ -202,7 +236,10 @@ include_once __DIR__ . '/../templates/admin_header.php';
 <div class="row mb-4 align-items-center">
     <div class="col">
         <h3 class="fw-bold mb-0 text-theme-primary">Yazar Hakedişleri</h3>
-        <p class="text-muted small">Tüm yazar hakedişlerini görüntüleyin, filtreleyin ve ödemeleri yönetin.</p>
+        <p class="text-muted small">
+            Kapanış: <?php echo $cutoffDate->format('d.m.Y H:i'); ?> |
+            Ödeme: <?php echo $nextPayoutDate->format('d.m.Y'); ?> (Cumartesi)
+        </p>
     </div>
 </div>
 
@@ -243,8 +280,8 @@ include_once __DIR__ . '/../templates/admin_header.php';
                 <label class="form-label small text-muted">Hakediş Dönemi</label>
                 <select name="donem" class="form-select">
                     <option value="tum" <?php echo $filters['donem'] === 'tum' ? 'selected' : ''; ?>>Tümü</option>
-                    <option value="odenebilir" <?php echo $filters['donem'] === 'odenebilir' ? 'selected' : ''; ?>>Ödenebilir (14+ gün)</option>
-                    <option value="bekleyen" <?php echo $filters['donem'] === 'bekleyen' ? 'selected' : ''; ?>>Bekleyen (14 gün dolmadı)</option>
+                    <option value="odenebilir" <?php echo $filters['donem'] === 'odenebilir' ? 'selected' : ''; ?>>Ödenebilir (kapanışa dahil)</option>
+                    <option value="bekleyen" <?php echo $filters['donem'] === 'bekleyen' ? 'selected' : ''; ?>>Bekleyen (sonraki döngü)</option>
                 </select>
             </div>
             <div class="col-12 text-end">
@@ -325,6 +362,8 @@ include_once __DIR__ . '/../templates/admin_header.php';
                                     <td class="text-center">
                                         <?php if ($sale['odeme_durumu'] === 'odendi'): ?>
                                             <span class="badge bg-secondary">Ödendi</span>
+                                        <?php elseif ($sale['odeme_durumu'] === 'batchte'): ?>
+                                            <span class="badge bg-info text-dark">Batch'te</span>
                                         <?php elseif ($sale['odeme_uygun']): ?>
                                             <span class="badge bg-success">Ödenebilir</span>
                                         <?php else: ?>
@@ -340,11 +379,15 @@ include_once __DIR__ . '/../templates/admin_header.php';
             </div>
             <div class="card-footer bg-white border-0 text-end">
                 <?php if (!empty($data['eligible_ids'])): ?>
+                    <a href="export_payout_pdf.php?yazar_id=<?php echo (int) $author_id; ?>&sale_ids=<?php echo urlencode(implode(',', $data['eligible_ids'])); ?>" class="btn btn-outline-primary me-2" target="_blank" rel="noopener">
+                        PDF Döküm İndir
+                    </a>
                     <form method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="<?php echo generate_admin_csrf_token(); ?>">
                         <input type="hidden" name="yazar_id" value="<?php echo (int) $author_id; ?>">
                         <input type="hidden" name="sale_ids" value="<?php echo implode(',', $data['eligible_ids']); ?>">
                         <button type="submit" name="mark_paid" class="btn btn-success">
-                            Ödenebilir Hakedişleri Ödendi Olarak İşaretle
+                            Batch Oluştur ve Ödendi Olarak İşle
                         </button>
                     </form>
                 <?php else: ?>

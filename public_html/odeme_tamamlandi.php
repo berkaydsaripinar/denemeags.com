@@ -5,7 +5,9 @@ require_once __DIR__ . '/includes/db_connect.php';
 require_once __DIR__ . '/includes/functions.php';
 
 $deneme_id = filter_input(INPUT_GET, 'deneme_id', FILTER_VALIDATE_INT);
+$merchant_oid = trim((string) ($_GET['oid'] ?? ''));
 $deneme = null;
+$siparis_ozeti = null;
 
 if ($deneme_id) {
     try {
@@ -14,6 +16,20 @@ if ($deneme_id) {
         $deneme = $stmt->fetch(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         error_log("Ödeme tamamlandı sayfası ürün bilgisi hatası: " . $e->getMessage());
+    }
+}
+
+if ($merchant_oid !== '' && isLoggedIn()) {
+    try {
+        $stmtOrder = $pdo->prepare('SELECT id, status, subtotal_ex_vat, vat_amount, total_amount FROM paytr_orders WHERE merchant_oid = ? AND user_id = ? LIMIT 1');
+        $stmtOrder->execute([$merchant_oid, $_SESSION['user_id']]);
+        $siparis_ozeti = $stmtOrder->fetch(PDO::FETCH_ASSOC);
+
+        if ($siparis_ozeti && ($siparis_ozeti['status'] ?? '') === 'paid') {
+            clear_cart();
+        }
+    } catch (Throwable $e) {
+        error_log('odeme_tamamlandi siparis kontrol hatası: ' . $e->getMessage());
     }
 }
 
@@ -46,6 +62,15 @@ include_once __DIR__ . '/templates/header.php';
                                     </div>
                                     <span class="badge rounded-pill bg-primary-subtle text-primary align-self-start">Kütüphaneye ekleniyor</span>
                                 </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($siparis_ozeti): ?>
+                            <div class="border rounded-4 p-4 bg-white mb-4">
+                                <div class="fw-bold mb-2">Sipariş Özeti</div>
+                                <div class="small text-muted">Ara Toplam (KDV Hariç): <?php echo number_format((float) $siparis_ozeti['subtotal_ex_vat'], 2); ?> TL</div>
+                                <div class="small text-muted">KDV (%20): <?php echo number_format((float) $siparis_ozeti['vat_amount'], 2); ?> TL</div>
+                                <div class="small fw-bold text-primary">Toplam: <?php echo number_format((float) $siparis_ozeti['total_amount'], 2); ?> TL</div>
                             </div>
                         <?php endif; ?>
 

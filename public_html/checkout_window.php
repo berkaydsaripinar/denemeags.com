@@ -8,4 +8,5 @@ if ($id) {
     redirect('checkout.php?id=' . $id);
 }
 
-redirect('store.php');
+// Sepet modunda id olmadan checkout.php çağrılır.
+redirect('checkout.php');

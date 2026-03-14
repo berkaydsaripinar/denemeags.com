@@ -8,8 +8,64 @@ $page_title = "Eğitim Mağazası";
 
 $kat = $_GET['kategori'] ?? '';
 $arama = trim($_GET['s'] ?? '');
+$paketler = [];
+
+function ensure_auto_bestseller_bundle(PDO $pdo): void
+{
+    $top = $pdo->query("
+        SELECT d.id, d.fiyat
+        FROM denemeler d
+        LEFT JOIN satis_loglari sl ON sl.deneme_id = d.id
+        WHERE d.aktif_mi = 1
+        GROUP BY d.id
+        ORDER BY COUNT(sl.id) DESC, d.id DESC
+        LIMIT 3
+    ")->fetchAll(PDO::FETCH_ASSOC);
+
+    if (count($top) < 2) {
+        return;
+    }
+
+    $sum = 0.0;
+    foreach ($top as $row) {
+        $sum += (float) $row['fiyat'];
+    }
+    $bundlePrice = round($sum * 0.85, 2); // %15 paket indirimi
+
+    $bundle = $pdo->query('SELECT id FROM urun_paketleri WHERE auto_generated_mi = 1 LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+    if ($bundle) {
+        $bundleId = (int) $bundle['id'];
+        $stmtUp = $pdo->prepare('UPDATE urun_paketleri SET paket_adi = ?, kisa_aciklama = ?, fiyat = ?, aktif_mi = 1, updated_at = NOW() WHERE id = ?');
+        $stmtUp->execute([
+            'Cok Satanlar Paketi',
+            'Magazadaki en cok satan 3 eser bir arada.',
+            $bundlePrice,
+            $bundleId,
+        ]);
+    } else {
+        $stmtIns = $pdo->prepare('INSERT INTO urun_paketleri (paket_adi, kisa_aciklama, fiyat, aktif_mi, auto_generated_mi, created_at, updated_at) VALUES (?, ?, ?, 1, 1, NOW(), NOW())');
+        $stmtIns->execute([
+            'Cok Satanlar Paketi',
+            'Magazadaki en cok satan 3 eser bir arada.',
+            $bundlePrice,
+        ]);
+        $bundleId = (int) $pdo->lastInsertId();
+    }
+
+    $pdo->prepare('DELETE FROM urun_paket_ogeleri WHERE paket_id = ?')->execute([$bundleId]);
+    $stmtItem = $pdo->prepare('INSERT INTO urun_paket_ogeleri (paket_id, deneme_id) VALUES (?, ?)');
+    foreach ($top as $row) {
+        $stmtItem->execute([$bundleId, (int) $row['id']]);
+    }
+}
 
 try {
+    try {
+        ensure_auto_bestseller_bundle($pdo);
+    } catch (Throwable $e) {
+        // Paket tabloları henüz migrate edilmemiş olabilir.
+    }
+
     $where = ["d.aktif_mi = 1"];
     $params = [];
 
@@ -22,6 +78,20 @@ try {
     $urunler = $stmt->fetchAll();
 
     $kategoriler = $pdo->query("SELECT DISTINCT kategori FROM denemeler WHERE aktif_mi = 1 AND kategori IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN);
+
+    try {
+        $paketler = $pdo->query("
+            SELECT p.*,
+                   COUNT(po.id) AS icerik_adedi
+            FROM urun_paketleri p
+            LEFT JOIN urun_paket_ogeleri po ON po.paket_id = p.id
+            WHERE p.aktif_mi = 1
+            GROUP BY p.id
+            ORDER BY p.auto_generated_mi DESC, p.updated_at DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        $paketler = [];
+    }
 } catch (Exception $e) { $urunler = []; }
 
 include_once __DIR__ . '/templates/header.php';
@@ -129,6 +199,11 @@ include_once __DIR__ . '/templates/header.php';
 </style>
 
 <div class="container py-5">
+    <div class="d-flex justify-content-end mb-3">
+        <a href="cart.php" class="btn btn-outline-primary rounded-pill px-4 fw-bold">
+            Sepetim (<?php echo get_cart_count(); ?>)
+        </a>
+    </div>
     <div class="store-hero mb-5">
         <div class="row align-items-center g-4">
             <div class="col-lg-7">
@@ -157,6 +232,39 @@ include_once __DIR__ . '/templates/header.php';
             </div>
         </div>
     </div>
+
+    <?php if (!empty($paketler)): ?>
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+            <h2 class="h4 fw-bold mb-0">Hazır Paketler</h2>
+            <span class="text-muted small">Cok satan urunler otomatik paketlenir.</span>
+        </div>
+        <div class="row g-4 mb-5">
+            <?php foreach ($paketler as $p): ?>
+                <div class="col-md-6 col-xl-4">
+                    <div class="product-card-modern border border-warning-subtle">
+                        <div class="product-cover d-flex align-items-center justify-content-center bg-warning-subtle">
+                            <span class="product-badge bg-warning text-dark">PAKET</span>
+                            <i class="fas fa-box-open fa-3x text-warning-emphasis"></i>
+                        </div>
+                        <div class="product-content">
+                            <h5 class="fw-bold mb-2 text-dark"><?php echo escape_html($p['paket_adi']); ?></h5>
+                            <div class="product-meta mb-3">
+                                <i class="fas fa-layer-group me-1 text-primary"></i>
+                                <?php echo (int) $p['icerik_adedi']; ?> eser icerir
+                            </div>
+                            <p class="text-muted small mb-4">
+                                <?php echo escape_html($p['kisa_aciklama'] ?: 'Hazir paket urunu.'); ?>
+                            </p>
+                            <div class="product-actions">
+                                <div class="product-price"><?php echo number_format((float) $p['fiyat'], 2); ?> TL + KDV</div>
+                                <a href="cart_action.php?action=add_bundle&bundle_id=<?php echo (int) $p['id']; ?>" class="btn btn-warning text-dark product-cta">Sepete Ekle</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 
     <?php if (empty($urunler)): ?>
         <div class="alert alert-light text-center py-5 shadow-sm border-0 rounded-4">
@@ -192,10 +300,10 @@ include_once __DIR__ . '/templates/header.php';
                         
                         <!-- Butonların ve Fiyatın Merkezi -->
                         <div class="product-actions">
-                            <div class="product-price"><?php echo number_format($u['fiyat'], 2); ?> ₺</div>
+                            <div class="product-price"><?php echo number_format((float) $u['fiyat'], 2); ?> TL + KDV</div>
                             <div class="d-flex gap-2">
                                 <a href="urun.php?id=<?php echo $u['id']; ?>" class="btn btn-outline-primary product-cta">İncele</a>
-                                <a href="checkout.php?id=<?php echo $u['id']; ?>" class="btn btn-primary product-cta">Satın Al</a>
+                                <a href="cart_action.php?action=add&id=<?php echo $u['id']; ?>" class="btn btn-primary product-cta">Sepete Ekle</a>
                             </div>
                         </div>
                     </div>

@@ -105,6 +105,9 @@ include_once __DIR__ . '/../templates/admin_header.php';
                         <th>Ürün / Yazar</th>
                         <th>Alıcı</th>
                         <th class="text-center">Brüt Tutar</th>
+                        <th class="text-center">KDV Oranı</th>
+                        <th class="text-center">KDV Tutarı</th>
+                        <th class="text-center">Tahsil Edilen</th>
                         <th class="text-center">Yazar Payı</th>
                         <th class="text-center">Platform Payı</th>
                         <th class="text-center">Hakediş</th>
@@ -113,9 +116,15 @@ include_once __DIR__ . '/../templates/admin_header.php';
                 </thead>
                 <tbody>
                     <?php if (empty($satislar)): ?>
-                        <tr><td colspan="8" class="py-5 text-center text-muted">Satış kaydı bulunamadı.</td></tr>
+                        <tr><td colspan="11" class="py-5 text-center text-muted">Satış kaydı bulunamadı.</td></tr>
                     <?php else: ?>
                         <?php foreach($satislar as $s): ?>
+                        <?php
+                            $kdvHaric = isset($s['kdv_haric_tutar']) ? (float) $s['kdv_haric_tutar'] : (float) $s['tutar_brut'];
+                            $kdvTutari = isset($s['kdv_tutari']) ? (float) $s['kdv_tutari'] : 0.0;
+                            $odenenToplam = isset($s['odenen_toplam_tutar']) ? (float) $s['odenen_toplam_tutar'] : ((float) $s['tutar_brut'] + $kdvTutari);
+                            $kdvOrani = $kdvHaric > 0 ? round(($kdvTutari / $kdvHaric) * 100, 2) : 0.0;
+                        ?>
                         <tr>
                             <td class="ps-4">
                                 <code class="fw-bold text-theme-primary"><?php echo $s['siparis_id']; ?></code>
@@ -129,6 +138,9 @@ include_once __DIR__ . '/../templates/admin_header.php';
                                 <div class="text-muted" style="font-size: 0.7rem;"><?php echo escape_html($s['alici_email']); ?></div>
                             </td>
                             <td class="text-center fw-bold text-dark"><?php echo number_format($s['tutar_brut'], 2); ?> ₺</td>
+                            <td class="text-center fw-bold text-secondary">%<?php echo number_format($kdvOrani, 2); ?></td>
+                            <td class="text-center fw-bold text-danger"><?php echo number_format($kdvTutari, 2); ?> ₺</td>
+                            <td class="text-center fw-bold text-primary"><?php echo number_format($odenenToplam, 2); ?> ₺</td>
                             <td class="text-center fw-bold text-success">
                                 <?php echo number_format($s['yazar_payi'], 2); ?> ₺
                                 <div class="text-muted" style="font-size: 0.6rem;">(%<?php echo $s['komisyon_yazar_orani']; ?>)</div>
@@ -162,7 +174,7 @@ include_once __DIR__ . '/../templates/admin_header.php';
 </div>
 
 <div class="alert alert-info mt-4 border-0 shadow-sm rounded-4 small">
-    <i class="fas fa-info-circle me-2"></i> <strong>Önemli:</strong> Buradaki rakamlar veritabanına kaydedilen brüt tutarlardır. Aracı ödeme kuruluşlarının (PAYTR/Iyzico) kendi işlem ücretleri platform payından düşülmelidir.
+    <i class="fas fa-info-circle me-2"></i> <strong>Önemli:</strong> Toplam ödeme KDV dahil tahsil edilir. Yazar payı KDV hariç tutar üzerinden hesaplanır.
 </div>
 
 <?php include_once __DIR__ . '/../templates/admin_footer.php'; ?>
